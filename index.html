@@ -128,6 +128,74 @@
       </section>
     </section>
   </main>
+  <header>
+    <h1>Organisation CRM</h1>
+    <p>Manage contacts, leads, and follow-up tasks in one place.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Dashboard</h2>
+      <div class="stats">
+        <div><span id="contactCount">0</span><small>Contacts</small></div>
+        <div><span id="leadCount">0</span><small>Leads</small></div>
+        <div><span id="openTaskCount">0</span><small>Open Tasks</small></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Add Contact</h2>
+      <form id="contactForm">
+        <input type="text" id="name" placeholder="Full Name" required />
+        <input type="email" id="email" placeholder="Email" required />
+        <input type="tel" id="phone" placeholder="Phone" required />
+        <input type="text" id="company" placeholder="Company / Department" required />
+        <button type="submit">Save Contact</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Add Lead</h2>
+      <form id="leadForm">
+        <input type="text" id="leadName" placeholder="Lead Title" required />
+        <select id="leadStage" required>
+          <option value="New">New</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Proposal">Proposal</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+        </select>
+        <input type="number" id="leadValue" placeholder="Estimated Value" min="0" required />
+        <button type="submit">Save Lead</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Add Follow-up Task</h2>
+      <form id="taskForm">
+        <input type="text" id="taskTitle" placeholder="Task title" required />
+        <input type="date" id="taskDate" required />
+        <button type="submit">Save Task</button>
+      </form>
+    </section>
+
+    <section class="card grid-2">
+      <div>
+        <h2>Contacts</h2>
+        <ul id="contactList"></ul>
+      </div>
+      <div>
+        <h2>Leads</h2>
+        <ul id="leadList"></ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <ul id="taskList"></ul>
+    </section>
+  </main>
+
   <script src="app.js"></script>
 </body>
 </html>
