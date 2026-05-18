@@ -1,0 +1,13 @@
+:root{font-family:Inter,Arial,sans-serif;color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#0f172a}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.4rem;background:#111827;color:#fff}.top-actions{display:flex;gap:.5rem;align-items:center}.user-badge{background:#1f2937;border:1px solid #374151;border-radius:999px;padding:.3rem .7rem;font-size:.85rem}
+.app-shell{max-width:1240px;margin:1rem auto;display:grid;grid-template-columns:220px 1fr;gap:1rem;padding:0 1rem 1.4rem}.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:1rem;box-shadow:0 4px 14px rgba(2,6,23,.05)}
+.nav-btn{width:100%;text-align:left;border:1px solid #dbe3ee;background:#f8fafc;padding:.65rem;border-radius:10px;margin:.25rem 0;cursor:pointer}.nav-btn.active{background:#dbeafe;border-color:#60a5fa}
+h1,h2,h3{margin:.2rem 0 .8rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem}.stats.compact{grid-template-columns:repeat(2,1fr)}.stats div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:.7rem;text-align:center}.stats span{display:block;font-size:1.3rem;font-weight:700}
+.tab{display:none}.tab.active{display:block}.split{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+form{display:grid;gap:.55rem}input,select,textarea,button{font:inherit;padding:.62rem;border:1px solid #d1d5db;border-radius:10px}
+button{background:#2563eb;color:#fff;border:none;cursor:pointer}.btn-outline{background:transparent;border:1px solid #93c5fd;color:#fff}.btn-outline.dark{color:#111827;border-color:#cbd5e1}.btn-danger{background:#dc2626}.hidden{display:none}
+ul{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}li{border:1px solid #e5e7eb;background:#fcfdff;border-radius:10px;padding:.6rem}
+.muted{color:#475569}.small{font-size:.85rem}.panel-muted{min-height:130px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:.7rem}
+.bars{display:grid;gap:.5rem}.bar-row{display:grid;grid-template-columns:90px 1fr 35px;gap:.5rem;align-items:center}.bar{background:#e2e8f0;border-radius:999px;height:10px;overflow:hidden}.bar i{display:block;background:#2563eb;height:100%}
+.login-dialog{border:none;border-radius:12px;padding:0;max-width:360px;width:90%}.login-form{padding:1rem}.dialog-actions{display:flex;justify-content:flex-end;gap:.5rem}
+@media(max-width:980px){.app-shell{grid-template-columns:1fr}.split,.stats{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start;gap:.6rem}}

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organisation CRM</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Organisation CRM</h1>
+      <p>CRM modules for IT companies: sales, delivery, support, and renewals.</p>
+    </div>
+    <div class="top-actions">
+      <span id="userBadge" class="user-badge">Guest</span>
+      <button id="loginBtn" class="btn-outline">Login</button>
+      <button id="logoutBtn" class="btn-danger hidden">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="sidebar card">
+      <h3>Modules</h3>
+      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-btn" data-tab="customers">Customers</button>
+      <button class="nav-btn" data-tab="sales">Sales Pipeline</button>
+      <button class="nav-btn" data-tab="projects">Projects & SLA</button>
+      <button class="nav-btn" data-tab="email">Email Center</button>
+      <button class="nav-btn" data-tab="support">Support Analytics</button>
+    </aside>
+
+    <section class="content">
+      <section id="dashboard" class="tab card active">
+        <h2>Executive Overview</h2>
+        <div class="stats">
+          <div><span id="contactCount">0</span><small>Contacts</small></div>
+          <div><span id="leadCount">0</span><small>Leads</small></div>
+          <div><span id="opportunityCount">0</span><small>Opportunities</small></div>
+          <div><span id="ticketOpenCount">0</span><small>Open Tickets</small></div>
+        </div>
+        <div class="stats compact">
+          <div><span id="renewalDueCount">0</span><small>Renewals Due (30d)</small></div>
+          <div><span id="projectActiveCount">0</span><small>Active Projects</small></div>
+        </div>
+      </section>
+
+      <section id="customers" class="tab card">
+        <div class="split">
+          <div>
+            <h2>Customer & Demographics</h2>
+            <form id="contactForm">
+              <input id="name" placeholder="Full Name" required />
+              <input id="email" type="email" placeholder="Primary Email" required />
+              <input id="secondaryEmail" placeholder="Secondary Email" />
+              <input id="phone" placeholder="Phone" required />
+              <input id="company" placeholder="Company" required />
+              <select id="gender" required><option value="">Gender</option><option>Female</option><option>Male</option><option>Other</option></select>
+              <input id="age" type="number" min="1" max="120" placeholder="Age" required />
+              <input id="location" placeholder="Location" required />
+              <button type="submit">Save Contact</button>
+            </form>
+          </div>
+          <div>
+            <h2>Customer 360°</h2>
+            <select id="customerSelect"><option value="">Select customer</option></select>
+            <div id="customer360" class="panel-muted">Select a customer to view full profile.</div>
+          </div>
+        </div>
+        <h3>Accounts</h3>
+        <form id="accountForm" class="inline-form">
+          <input id="accountName" placeholder="Account Name" required />
+          <select id="accountTier"><option>SMB</option><option>Mid-Market</option><option>Enterprise</option></select>
+          <input id="renewalDate" type="date" required />
+          <button type="submit">Add Account</button>
+        </form>
+        <ul id="accountList"></ul>
+        <h3>Contacts</h3>
+        <ul id="contactList"></ul>
+      </section>
+
+      <section id="sales" class="tab card">
+        <h2>Sales Pipeline & Forecast</h2>
+        <div class="split">
+          <div>
+            <form id="leadForm">
+              <input id="leadName" placeholder="Lead Title" required />
+              <select id="leadStage" required><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select>
+              <input id="leadValue" type="number" min="0" placeholder="Lead Value" required />
+              <button type="submit">Save Lead</button>
+            </form>
+            <ul id="leadList"></ul>
+          </div>
+          <div>
+            <form id="opportunityForm">
+              <input id="oppName" placeholder="Opportunity Name" required />
+              <input id="oppValue" type="number" min="0" placeholder="Deal Value" required />
+              <select id="oppProbability"><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="90">90%</option></select>
+              <button type="submit">Add Opportunity</button>
+            </form>
+            <ul id="opportunityList"></ul>
+            <p><strong>Weighted Forecast:</strong> ₹<span id="weightedForecast">0</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="projects" class="tab card">
+        <h2>Projects, Activities & SLA</h2>
+        <div class="split">
+          <div>
+            <form id="projectForm">
+              <input id="projectName" placeholder="Project Name" required />
+              <select id="projectStatus"><option>Active</option><option>On Hold</option><option>Completed</option></select>
+              <input id="projectManager" placeholder="Project Manager" required />
+              <button type="submit">Add Project</button>
+            </form>
+            <ul id="projectList"></ul>
+          </div>
+          <div>
+            <form id="activityForm">
+              <select id="activityType"><option>Call</option><option>Meeting</option><option>Demo</option><option>Follow-up</option></select>
+              <input id="activityNote" placeholder="Activity Note" required />
+              <button type="submit">Log Activity</button>
+            </form>
+            <ul id="activityList"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="email" class="tab card">
+        <h2>Email Center with SMTP</h2>
+        <form id="mailForm">
+          <select id="mailMode"><option value="single">Single Email</option><option value="multi">Multiple Emails</option><option value="bulk">Bulk to all contacts</option></select>
+          <input id="mailTo" placeholder="Recipient(s), comma separated" />
+          <input id="mailSubject" placeholder="Subject" required />
+          <textarea id="mailBody" rows="5" placeholder="Message" required></textarea>
+          <button type="submit">Send via SMTP</button>
+        </form>
+        <p id="mailStatus" class="muted"></p>
+      </section>
+      <section id="support" class="tab card">
+        <h2>Interactive Ticket Dashboard</h2>
+        <div class="split">
+          <div>
+            <form id="ticketForm">
+              <input id="ticketTitle" placeholder="Ticket title" required />
+              <select id="ticketPriority" required><option>Low</option><option>Medium</option><option>High</option></select>
+              <select id="ticketStatus" required><option>Open</option><option>In Progress</option><option>Resolved</option></select>
+              <button type="submit">Create Ticket</button>
+            </form>
+            <select id="ticketFilter"><option value="All">All Tickets</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option></select>
+            <ul id="ticketList"></ul>
+          </div>
+          <div>
+            <h3>Analytics</h3>
+            <div class="stats compact"><div><span id="ticketInProgressCount">0</span><small>In Progress</small></div><div><span id="ticketResolvedCount">0</span><small>Resolved</small></div></div>
+            <div id="ticketAnalytics" class="bars"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="loginDialog" class="login-dialog">
+    <form id="loginForm" method="dialog" class="login-form">
+      <h3>Login</h3>
+      <input id="loginEmail" type="email" placeholder="Email" required />
+      <input id="loginPassword" type="password" placeholder="Password" required />
+      <p class="muted small">Demo credentials: <strong>admin@crm.local</strong> / <strong>admin123</strong></p>
+      <div class="dialog-actions">
+        <button type="button" id="closeLogin" class="btn-outline dark">Cancel</button>
+        <button type="submit">Sign In</button>
+      </div>
+      <p id="loginStatus" class="muted"></p>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
