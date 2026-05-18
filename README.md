@@ -71,3 +71,6 @@ Then open `http://localhost:9090`.
 - Lead assignment and pipeline analytics
 - Activity timeline and email/SMS integration
 - Import/export via CSV
+## Multi-user RBAC upgrade
+For a full step-by-step implementation plan, see `docs/RBAC_SETUP.md`.
+
