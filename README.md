@@ -79,3 +79,9 @@ Then open `http://localhost:9090`.
 ## Multi-user RBAC upgrade
 For a full step-by-step implementation plan, see `docs/RBAC_SETUP.md`.
 
+
+## SMTP backend setup
+1. Copy `.env.example` to `.env` and fill SMTP values.
+2. Run `npm install`.
+3. Start SMTP API with `npm start` (runs on `http://localhost:3001`).
+4. Start frontend (python server) and use Email Center to send mail.

@@ -10,120 +10,124 @@
   <header class="topbar">
     <div>
       <h1>Organisation CRM</h1>
-      <p>Sales, support, and customer intelligence in one workspace.</p>
+      <p>Clean workspace for customer, sales, support and communication.</p>
     </div>
-    <button id="loginBtn" class="btn-outline">Login</button>
+    <div class="top-actions">
+      <button id="loginBtn" class="btn-outline">Login</button>
+    </div>
   </header>
 
-  <main class="layout">
-    <section class="card hero">
-      <h2>Executive Dashboard</h2>
-      <div class="stats">
-        <div><span id="contactCount">0</span><small>Contacts</small></div>
-        <div><span id="leadCount">0</span><small>Leads</small></div>
-        <div><span id="openTaskCount">0</span><small>Open Tasks</small></div>
-        <div><span id="ticketOpenCount">0</span><small>Open Tickets</small></div>
-      </div>
-    </section>
+  <main class="app-shell">
+    <aside class="sidebar card">
+      <h3>Navigation</h3>
+      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-btn" data-tab="customers">Customers</button>
+      <button class="nav-btn" data-tab="email">Email Center</button>
+      <button class="nav-btn" data-tab="support">Support Analytics</button>
+    </aside>
 
-    <section class="card grid-2">
-      <div>
-        <h2>Add Contact & Demographic Details</h2>
-        <form id="contactForm">
-          <input type="text" id="name" placeholder="Full Name" required />
-          <input type="email" id="email" placeholder="Primary Email" required />
-          <input type="text" id="secondaryEmail" placeholder="Secondary Email (optional)" />
-          <input type="tel" id="phone" placeholder="Phone" required />
-          <input type="text" id="company" placeholder="Company / Department" required />
-          <select id="gender" required>
-            <option value="">Gender</option>
-            <option>Female</option><option>Male</option><option>Other</option>
-          </select>
-          <input type="number" id="age" min="1" max="120" placeholder="Age" required />
-          <input type="text" id="location" placeholder="Location (City, State)" required />
-          <button type="submit">Save Contact</button>
-        </form>
-      </div>
-      <div>
-        <h2>Add Lead</h2>
-        <form id="leadForm">
-          <input type="text" id="leadName" placeholder="Lead Title" required />
-          <select id="leadStage" required>
-            <option value="New">New</option>
-            <option value="Qualified">Qualified</option>
-            <option value="Proposal">Proposal</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
-          </select>
-          <input type="number" id="leadValue" placeholder="Estimated Value" min="0" required />
-          <button type="submit">Save Lead</button>
-        </form>
-
-        <h2>Add Follow-up Task</h2>
-        <form id="taskForm">
-          <input type="text" id="taskTitle" placeholder="Task title" required />
-          <input type="date" id="taskDate" required />
-          <button type="submit">Save Task</button>
-        </form>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Email Center (Single + Bulk)</h2>
-      <form id="mailForm">
-        <select id="mailMode">
-          <option value="single">Single Email</option>
-          <option value="multi">Multiple Emails</option>
-          <option value="bulk">Bulk to All Contacts</option>
-        </select>
-        <input type="text" id="mailTo" placeholder="Recipient(s): comma separated for multiple" />
-        <input type="text" id="mailSubject" placeholder="Subject" required />
-        <textarea id="mailBody" placeholder="Write your message" rows="4" required></textarea>
-        <button type="submit">Send Mail</button>
-      </form>
-      <p id="mailStatus" class="muted"></p>
-    </section>
-
-    <section class="card grid-2">
-      <div>
-        <h2>Support Dashboard (Ticket Overview)</h2>
-        <form id="ticketForm">
-          <input type="text" id="ticketTitle" placeholder="Ticket title" required />
-          <select id="ticketPriority" required>
-            <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
-          </select>
-          <select id="ticketStatus" required>
-            <option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option>
-          </select>
-          <button type="submit">Create Ticket</button>
-        </form>
-        <div class="stats compact">
-          <div><span id="ticketInProgressCount">0</span><small>In Progress</small></div>
-          <div><span id="ticketResolvedCount">0</span><small>Resolved</small></div>
+    <section class="content">
+      <section id="dashboard" class="tab card active">
+        <h2>Executive Overview</h2>
+        <div class="stats">
+          <div><span id="contactCount">0</span><small>Contacts</small></div>
+          <div><span id="leadCount">0</span><small>Leads</small></div>
+          <div><span id="openTaskCount">0</span><small>Open Tasks</small></div>
+          <div><span id="ticketOpenCount">0</span><small>Open Tickets</small></div>
         </div>
-        <ul id="ticketList"></ul>
-      </div>
+      </section>
 
-      <div>
-        <h2>Customer 360° View</h2>
-        <select id="customerSelect">
-          <option value="">Select customer</option>
-        </select>
-        <div id="customer360" class="panel-muted">Select a customer to view profile, leads, tasks, and ticket snapshot.</div>
-      </div>
-    </section>
+      <section id="customers" class="tab card">
+        <div class="split">
+          <div>
+            <h2>Customer & Demographics</h2>
+            <form id="contactForm" class="grid-form">
+              <input type="text" id="name" placeholder="Full Name" required />
+              <input type="email" id="email" placeholder="Primary Email" required />
+              <input type="text" id="secondaryEmail" placeholder="Secondary Email" />
+              <input type="tel" id="phone" placeholder="Phone" required />
+              <input type="text" id="company" placeholder="Company" required />
+              <select id="gender" required><option value="">Gender</option><option>Female</option><option>Male</option><option>Other</option></select>
+              <input type="number" id="age" min="1" max="120" placeholder="Age" required />
+              <input type="text" id="location" placeholder="Location" required />
+              <button type="submit">Save Contact</button>
+            </form>
+          </div>
+          <div>
+            <h2>Customer 360°</h2>
+            <select id="customerSelect"><option value="">Select customer</option></select>
+            <div id="customer360" class="panel-muted">Select a customer to view full profile.</div>
+          </div>
+        </div>
 
-    <section class="card grid-2">
-      <div><h2>Contacts</h2><ul id="contactList"></ul></div>
-      <div><h2>Leads</h2><ul id="leadList"></ul></div>
-    </section>
+        <div class="split">
+          <div>
+            <h3>Leads</h3>
+            <form id="leadForm">
+              <input type="text" id="leadName" placeholder="Lead Title" required />
+              <select id="leadStage" required><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select>
+              <input type="number" id="leadValue" min="0" placeholder="Value" required />
+              <button type="submit">Save Lead</button>
+            </form>
+            <ul id="leadList"></ul>
+          </div>
+          <div>
+            <h3>Tasks</h3>
+            <form id="taskForm">
+              <input type="text" id="taskTitle" placeholder="Task title" required />
+              <input type="date" id="taskDate" required />
+              <button type="submit">Save Task</button>
+            </form>
+            <ul id="taskList"></ul>
+          </div>
+        </div>
+        <h3>Contacts</h3>
+        <ul id="contactList"></ul>
+      </section>
 
-    <section class="card">
-      <h2>Tasks</h2>
-      <ul id="taskList"></ul>
+      <section id="email" class="tab card">
+        <h2>Email Center with SMTP</h2>
+        <p class="muted">Configure SMTP in backend `.env` and send real emails from this form.</p>
+        <form id="mailForm">
+          <select id="mailMode"><option value="single">Single Email</option><option value="multi">Multiple Emails</option><option value="bulk">Bulk to all contacts</option></select>
+          <input type="text" id="mailTo" placeholder="Recipient(s), comma separated for multi" />
+          <input type="text" id="mailSubject" placeholder="Subject" required />
+          <textarea id="mailBody" rows="5" placeholder="Message" required></textarea>
+          <button type="submit">Send via SMTP</button>
+        </form>
+        <p id="mailStatus" class="muted"></p>
+      </section>
+
+      <section id="support" class="tab card">
+        <h2>Interactive Ticket Dashboard</h2>
+        <div class="split">
+          <div>
+            <form id="ticketForm">
+              <input type="text" id="ticketTitle" placeholder="Ticket title" required />
+              <select id="ticketPriority" required><option>Low</option><option>Medium</option><option>High</option></select>
+              <select id="ticketStatus" required><option>Open</option><option>In Progress</option><option>Resolved</option></select>
+              <button type="submit">Create Ticket</button>
+            </form>
+            <select id="ticketFilter">
+              <option value="All">All Tickets</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <ul id="ticketList"></ul>
+          </div>
+          <div>
+            <h3>Analytics</h3>
+            <div class="stats compact">
+              <div><span id="ticketInProgressCount">0</span><small>In Progress</small></div>
+              <div><span id="ticketResolvedCount">0</span><small>Resolved</small></div>
+            </div>
+            <div id="ticketAnalytics" class="bars"></div>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
-
   <script src="app.js"></script>
 </body>
 </html>
