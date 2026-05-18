@@ -16,6 +16,14 @@ A lightweight CRM starter app for managing:
 - Single, multiple, and bulk email compose options
 - Support ticket overview dashboard
 - Customer 360° quick profile panel
+<<<<<<< codex/create-crm-software-imm0cs
+- Accounts module with renewal tracking
+- Opportunities with weighted forecast
+- Projects module with status and manager
+- Activity timeline/log for calls, demos, follow-ups
+- IT-style dashboard KPIs (renewals due, active projects)
+=======
+>>>>>>> main
 
 ## Project files
 - `index.html` → UI structure

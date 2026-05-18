@@ -10,18 +10,32 @@
   <header class="topbar">
     <div>
       <h1>Organisation CRM</h1>
+<<<<<<< codex/create-crm-software-imm0cs
+      <p>CRM modules for IT companies: sales, delivery, support, and renewals.</p>
+    </div>
+    <div class="top-actions"><button id="loginBtn" class="btn-outline">Login</button></div>
+=======
       <p>Clean workspace for customer, sales, support and communication.</p>
     </div>
     <div class="top-actions">
       <button id="loginBtn" class="btn-outline">Login</button>
     </div>
+>>>>>>> main
   </header>
 
   <main class="app-shell">
     <aside class="sidebar card">
+<<<<<<< codex/create-crm-software-imm0cs
+      <h3>Modules</h3>
+      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-btn" data-tab="customers">Customers</button>
+      <button class="nav-btn" data-tab="sales">Sales Pipeline</button>
+      <button class="nav-btn" data-tab="projects">Projects & SLA</button>
+=======
       <h3>Navigation</h3>
       <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
       <button class="nav-btn" data-tab="customers">Customers</button>
+>>>>>>> main
       <button class="nav-btn" data-tab="email">Email Center</button>
       <button class="nav-btn" data-tab="support">Support Analytics</button>
     </aside>
@@ -32,15 +46,36 @@
         <div class="stats">
           <div><span id="contactCount">0</span><small>Contacts</small></div>
           <div><span id="leadCount">0</span><small>Leads</small></div>
+<<<<<<< codex/create-crm-software-imm0cs
+          <div><span id="opportunityCount">0</span><small>Opportunities</small></div>
+          <div><span id="ticketOpenCount">0</span><small>Open Tickets</small></div>
+        </div>
+        <div class="stats compact">
+          <div><span id="renewalDueCount">0</span><small>Renewals Due (30d)</small></div>
+          <div><span id="projectActiveCount">0</span><small>Active Projects</small></div>
+        </div>
+=======
           <div><span id="openTaskCount">0</span><small>Open Tasks</small></div>
           <div><span id="ticketOpenCount">0</span><small>Open Tickets</small></div>
         </div>
+>>>>>>> main
       </section>
 
       <section id="customers" class="tab card">
         <div class="split">
           <div>
             <h2>Customer & Demographics</h2>
+<<<<<<< codex/create-crm-software-imm0cs
+            <form id="contactForm">
+              <input id="name" placeholder="Full Name" required />
+              <input id="email" type="email" placeholder="Primary Email" required />
+              <input id="secondaryEmail" placeholder="Secondary Email" />
+              <input id="phone" placeholder="Phone" required />
+              <input id="company" placeholder="Company" required />
+              <select id="gender" required><option value="">Gender</option><option>Female</option><option>Male</option><option>Other</option></select>
+              <input id="age" type="number" min="1" max="120" placeholder="Age" required />
+              <input id="location" placeholder="Location" required />
+=======
             <form id="contactForm" class="grid-form">
               <input type="text" id="name" placeholder="Full Name" required />
               <input type="email" id="email" placeholder="Primary Email" required />
@@ -50,6 +85,7 @@
               <select id="gender" required><option value="">Gender</option><option>Female</option><option>Male</option><option>Other</option></select>
               <input type="number" id="age" min="1" max="120" placeholder="Age" required />
               <input type="text" id="location" placeholder="Location" required />
+>>>>>>> main
               <button type="submit">Save Contact</button>
             </form>
           </div>
@@ -59,6 +95,28 @@
             <div id="customer360" class="panel-muted">Select a customer to view full profile.</div>
           </div>
         </div>
+<<<<<<< codex/create-crm-software-imm0cs
+        <h3>Accounts</h3>
+        <form id="accountForm" class="inline-form">
+          <input id="accountName" placeholder="Account Name" required />
+          <select id="accountTier"><option>SMB</option><option>Mid-Market</option><option>Enterprise</option></select>
+          <input id="renewalDate" type="date" required />
+          <button type="submit">Add Account</button>
+        </form>
+        <ul id="accountList"></ul>
+        <h3>Contacts</h3>
+        <ul id="contactList"></ul>
+      </section>
+
+      <section id="sales" class="tab card">
+        <h2>Sales Pipeline & Forecast</h2>
+        <div class="split">
+          <div>
+            <form id="leadForm">
+              <input id="leadName" placeholder="Lead Title" required />
+              <select id="leadStage" required><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select>
+              <input id="leadValue" type="number" min="0" placeholder="Lead Value" required />
+=======
 
         <div class="split">
           <div>
@@ -67,11 +125,47 @@
               <input type="text" id="leadName" placeholder="Lead Title" required />
               <select id="leadStage" required><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select>
               <input type="number" id="leadValue" min="0" placeholder="Value" required />
+>>>>>>> main
               <button type="submit">Save Lead</button>
             </form>
             <ul id="leadList"></ul>
           </div>
           <div>
+<<<<<<< codex/create-crm-software-imm0cs
+            <form id="opportunityForm">
+              <input id="oppName" placeholder="Opportunity Name" required />
+              <input id="oppValue" type="number" min="0" placeholder="Deal Value" required />
+              <select id="oppProbability"><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="90">90%</option></select>
+              <button type="submit">Add Opportunity</button>
+            </form>
+            <ul id="opportunityList"></ul>
+            <p><strong>Weighted Forecast:</strong> ₹<span id="weightedForecast">0</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="projects" class="tab card">
+        <h2>Projects, Activities & SLA</h2>
+        <div class="split">
+          <div>
+            <form id="projectForm">
+              <input id="projectName" placeholder="Project Name" required />
+              <select id="projectStatus"><option>Active</option><option>On Hold</option><option>Completed</option></select>
+              <input id="projectManager" placeholder="Project Manager" required />
+              <button type="submit">Add Project</button>
+            </form>
+            <ul id="projectList"></ul>
+          </div>
+          <div>
+            <form id="activityForm">
+              <select id="activityType"><option>Call</option><option>Meeting</option><option>Demo</option><option>Follow-up</option></select>
+              <input id="activityNote" placeholder="Activity Note" required />
+              <button type="submit">Log Activity</button>
+            </form>
+            <ul id="activityList"></ul>
+          </div>
+        </div>
+=======
             <h3>Tasks</h3>
             <form id="taskForm">
               <input type="text" id="taskTitle" placeholder="Task title" required />
@@ -83,51 +177,76 @@
         </div>
         <h3>Contacts</h3>
         <ul id="contactList"></ul>
+>>>>>>> main
       </section>
 
       <section id="email" class="tab card">
         <h2>Email Center with SMTP</h2>
+<<<<<<< codex/create-crm-software-imm0cs
+        <form id="mailForm">
+          <select id="mailMode"><option value="single">Single Email</option><option value="multi">Multiple Emails</option><option value="bulk">Bulk to all contacts</option></select>
+          <input id="mailTo" placeholder="Recipient(s), comma separated" />
+          <input id="mailSubject" placeholder="Subject" required />
+=======
         <p class="muted">Configure SMTP in backend `.env` and send real emails from this form.</p>
         <form id="mailForm">
           <select id="mailMode"><option value="single">Single Email</option><option value="multi">Multiple Emails</option><option value="bulk">Bulk to all contacts</option></select>
           <input type="text" id="mailTo" placeholder="Recipient(s), comma separated for multi" />
           <input type="text" id="mailSubject" placeholder="Subject" required />
+>>>>>>> main
           <textarea id="mailBody" rows="5" placeholder="Message" required></textarea>
           <button type="submit">Send via SMTP</button>
         </form>
         <p id="mailStatus" class="muted"></p>
       </section>
+<<<<<<< codex/create-crm-software-imm0cs
+=======
 
+>>>>>>> main
       <section id="support" class="tab card">
         <h2>Interactive Ticket Dashboard</h2>
         <div class="split">
           <div>
             <form id="ticketForm">
+<<<<<<< codex/create-crm-software-imm0cs
+              <input id="ticketTitle" placeholder="Ticket title" required />
+=======
               <input type="text" id="ticketTitle" placeholder="Ticket title" required />
+>>>>>>> main
               <select id="ticketPriority" required><option>Low</option><option>Medium</option><option>High</option></select>
               <select id="ticketStatus" required><option>Open</option><option>In Progress</option><option>Resolved</option></select>
               <button type="submit">Create Ticket</button>
             </form>
+<<<<<<< codex/create-crm-software-imm0cs
+            <select id="ticketFilter"><option value="All">All Tickets</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option></select>
+=======
             <select id="ticketFilter">
               <option value="All">All Tickets</option>
               <option value="Open">Open</option>
               <option value="In Progress">In Progress</option>
               <option value="Resolved">Resolved</option>
             </select>
+>>>>>>> main
             <ul id="ticketList"></ul>
           </div>
           <div>
             <h3>Analytics</h3>
+<<<<<<< codex/create-crm-software-imm0cs
+            <div class="stats compact"><div><span id="ticketInProgressCount">0</span><small>In Progress</small></div><div><span id="ticketResolvedCount">0</span><small>Resolved</small></div></div>
+=======
             <div class="stats compact">
               <div><span id="ticketInProgressCount">0</span><small>In Progress</small></div>
               <div><span id="ticketResolvedCount">0</span><small>Resolved</small></div>
             </div>
+>>>>>>> main
             <div id="ticketAnalytics" class="bars"></div>
           </div>
         </div>
       </section>
     </section>
   </main>
+<<<<<<< codex/create-crm-software-imm0cs
+=======
   <header>
     <h1>Organisation CRM</h1>
     <p>Manage contacts, leads, and follow-up tasks in one place.</p>
@@ -196,6 +315,7 @@
     </section>
   </main>
 
+>>>>>>> main
   <script src="app.js"></script>
 </body>
 </html>
