@@ -25,6 +25,7 @@
       <button class="tnav" data-tab="sales">Sales</button>
       <button class="tnav" data-tab="projects">Projects</button>
       <button class="tnav" data-tab="support">Support</button>
+      <button class="tnav" data-tab="reports">Reports</button>
       <button class="tnav" data-tab="documents">Documents</button>
       <button class="tnav" data-tab="email">Email</button>
     </nav>
@@ -163,23 +164,23 @@
       <div class="kanban-board" id="kanbanBoard">
         <div class="kanban-col" data-stage="New">
           <div class="kanban-col-title"><span class="stage-dot stage-new"></span>New</div>
-          <div class="kanban-cards" id="kStageNew"></div>
+          <div class="kanban-cards" id="kStageNew" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'New')"></div>
         </div>
         <div class="kanban-col" data-stage="Qualified">
           <div class="kanban-col-title"><span class="stage-dot stage-qualified"></span>Qualified</div>
-          <div class="kanban-cards" id="kStageQualified"></div>
+          <div class="kanban-cards" id="kStageQualified" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'Qualified')"></div>
         </div>
         <div class="kanban-col" data-stage="Proposal">
           <div class="kanban-col-title"><span class="stage-dot stage-proposal"></span>Proposal</div>
-          <div class="kanban-cards" id="kStageProposal"></div>
+          <div class="kanban-cards" id="kStageProposal" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'Proposal')"></div>
         </div>
         <div class="kanban-col" data-stage="Won">
           <div class="kanban-col-title"><span class="stage-dot stage-won"></span>Won</div>
-          <div class="kanban-cards" id="kStageWon"></div>
+          <div class="kanban-cards" id="kStageWon" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'Won')"></div>
         </div>
         <div class="kanban-col" data-stage="Lost">
           <div class="kanban-col-title"><span class="stage-dot stage-lost"></span>Lost</div>
-          <div class="kanban-cards" id="kStageLost"></div>
+          <div class="kanban-cards" id="kStageLost" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'Lost')"></div>
         </div>
       </div>
 
@@ -306,6 +307,52 @@
         </div>
       </div>
     </section>
+
+    <!-- ══════════════════════════════════════════════════
+         REPORTS
+    ══════════════════════════════════════════════════ -->
+    <section id="reports" class="page">
+      <div class="page-header">
+        <h1>Reports & Export</h1>
+        <div class="btn-group">
+          <button class="btn-secondary-sm" onclick="exportAllCSV()">⬇ Export All CSV</button>
+          <button class="btn-primary-sm" onclick="printReport()">🖨 Print Report</button>
+        </div>
+      </div>
+
+      <!-- Report type tabs -->
+      <div class="report-tabs">
+        <button class="rtab active" onclick="switchReport('contacts')">👥 Contacts</button>
+        <button class="rtab" onclick="switchReport('leads')">🔥 Leads</button>
+        <button class="rtab" onclick="switchReport('tickets')">🎫 Tickets</button>
+        <button class="rtab" onclick="switchReport('projects')">📁 Projects</button>
+        <button class="rtab" onclick="switchReport('activities')">📋 Activities</button>
+        <button class="rtab" onclick="switchReport('pipeline')">💰 Pipeline</button>
+      </div>
+
+      <!-- Report toolbar -->
+      <div class="report-toolbar" id="reportToolbar">
+        <input id="reportSearch" class="search-box" placeholder="🔍  Search…" oninput="renderReport()" style="max-width:260px" />
+        <div id="reportFilters" class="report-filters"></div>
+        <div style="margin-left:auto;display:flex;gap:.5rem">
+          <button class="btn-secondary-sm" onclick="exportCurrentCSV()">⬇ Export CSV</button>
+          <button class="btn-secondary-sm" onclick="exportCurrentPDF()">⬇ Export PDF</button>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div id="reportSummary" class="report-summary"></div>
+
+      <!-- Data table -->
+      <div class="report-table-wrap">
+        <table class="data-table report-table" id="reportTable">
+          <thead id="reportHead"></thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+        <div id="reportEmpty" class="report-empty hidden">No records match the current filters.</div>
+      </div>
+    </section>
+
 
     <!-- ══════════════════════════════════════════════════
          DOCUMENTS
@@ -571,6 +618,19 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Contact Timeline Modal -->
+  <dialog id="timelineModal" class="modal-dialog modal-lg" style="max-width:640px">
+    <div class="modal-header">
+      <h3>📋 Contact Timeline</h3>
+      <button class="modal-close" onclick="closeModal('timelineModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="timelineHeader" class="timeline-contact-header"></div>
+      <div id="timelineBody" class="timeline-body"></div>
+    </div>
   </dialog>
 
 

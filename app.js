@@ -129,6 +129,8 @@ function switchTab(id) {
   q(id).classList.add('active');
   document.querySelector(`.tnav[data-tab="${id}"]`).classList.add('active');
   if (id==='projects') renderProjectViews();
+  if (id==='reports')  renderReport();
+  if (id==='documents') { syncDocDropdowns(); renderDocuments(); }
 }
 function switchProjectView(view) {
   document.querySelectorAll('.project-view').forEach(v=>v.classList.remove('active'));
@@ -508,6 +510,7 @@ function renderContactList(list) {
         <div class="record-name">${c.name}</div>
         <div class="record-sub">${c.company||''} · ${c.email} · ${c.location||''}</div>
       </div>
+      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋 Timeline</button>
       ${actBtns('contacts',c.id,canE,canD)}
     </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No contacts. Log in and add one.</li>';
 }
@@ -566,7 +569,7 @@ function renderSales() {
     const col = q(`kStage${stage.replace(' ','')}`);
     const leads = state.leads.filter(l=>l.stage===stage);
     col.innerHTML = leads.map(l=>`
-      <div class="kanban-card">
+      <div class="kanban-card" draggable="true" ondragstart="kanbanDragStart(event,'${l.id}')" ondragend="kanbanDragEnd(event)">
         <div class="kanban-card-title">${l.title}</div>
         <div class="kanban-card-val">₹${fmtMoney(l.value)}</div>
         ${l.contact_id ? `<div class="kanban-card-contact">👤 ${state.contacts.find(c=>c.id===l.contact_id)?.name||'—'}</div>` : ''}
@@ -757,6 +760,7 @@ function renderAll() {
   syncProjectDropdowns();
   syncDocDropdowns();
   renderDocuments();
+  if (q('reportBody')) renderReport();
 }
 
 
@@ -1183,3 +1187,429 @@ renderSession();
 renderAll();
 checkSmtp();
 q('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 1: REPORTS & CSV/PDF EXPORT
+// ══════════════════════════════════════════════════════════════════
+
+let _currentReport = 'contacts';
+
+const REPORT_CONFIG = {
+  contacts: {
+    label: 'Contacts',
+    headers: ['Name','Email','Phone','Company','Gender','Age','Location'],
+    row: c => [c.name, c.email, c.phone||'', c.company||'', c.gender||'', c.age||'', c.location||''],
+    summary: () => {
+      const total = state.contacts.length;
+      const withEmail = state.contacts.filter(c=>c.email).length;
+      const companies = new Set(state.contacts.map(c=>c.company).filter(Boolean)).size;
+      return [
+        {label:'Total Contacts',  val: total},
+        {label:'With Email',      val: withEmail},
+        {label:'Companies',       val: companies},
+        {label:'Avg Age',         val: state.contacts.length ? Math.round(state.contacts.reduce((s,c)=>s+(c.age||0),0)/state.contacts.length) : '—'},
+      ];
+    },
+    filters: [],
+  },
+  leads: {
+    label: 'Leads',
+    headers: ['Title','Stage','Value (₹)','Contact','Created'],
+    row: l => [l.title, l.stage, fmtMoney(l.value), state.contacts.find(c=>c.id===l.contact_id)?.name||'—', fmtDate(l.created_at)],
+    summary: () => {
+      const won = state.leads.filter(l=>l.stage==='Won');
+      const total = state.leads.reduce((s,l)=>s+(l.value||0),0);
+      return [
+        {label:'Total Leads',     val: state.leads.length},
+        {label:'Won',             val: won.length},
+        {label:'Total Value',     val: '₹'+fmtMoney(total)},
+        {label:'Won Value',       val: '₹'+fmtMoney(won.reduce((s,l)=>s+(l.value||0),0))},
+        {label:'Win Rate',        val: state.leads.length ? Math.round(won.length/state.leads.length*100)+'%' : '0%'},
+      ];
+    },
+    filters: ['stage'],
+  },
+  tickets: {
+    label: 'Tickets',
+    headers: ['Title','Status','Priority','Contact','Created'],
+    row: t => [t.title, t.status, t.priority, state.contacts.find(c=>c.id===t.contact_id)?.name||'—', fmtDate(t.created_at)],
+    summary: () => {
+      const open = state.tickets.filter(t=>t.status==='Open').length;
+      const res  = state.tickets.filter(t=>t.status==='Resolved').length;
+      return [
+        {label:'Total Tickets',   val: state.tickets.length},
+        {label:'Open',            val: open},
+        {label:'Resolved',        val: res},
+        {label:'High Priority',   val: state.tickets.filter(t=>t.priority==='High').length},
+        {label:'Resolution Rate', val: state.tickets.length ? Math.round(res/state.tickets.length*100)+'%' : '0%'},
+      ];
+    },
+    filters: ['status','priority'],
+  },
+  projects: {
+    label: 'Projects',
+    headers: ['Name','Status','Priority','Manager','Progress','Budget (₹)','Due Date'],
+    row: p => [p.name, p.status, p.priority||'—', p.manager, (p.progress||0)+'%', fmtMoney(p.budget||0), fmtDate(p.dueDate)],
+    summary: () => {
+      const active = state.projects.filter(p=>p.status==='Active').length;
+      const totalBudget = state.projects.reduce((s,p)=>s+(p.budget||0),0);
+      return [
+        {label:'Total Projects',  val: state.projects.length},
+        {label:'Active',          val: active},
+        {label:'Completed',       val: state.projects.filter(p=>p.status==='Completed').length},
+        {label:'Total Budget',    val: '₹'+fmtMoney(totalBudget)},
+        {label:'Avg Progress',    val: state.projects.length ? Math.round(state.projects.reduce((s,p)=>s+(p.progress||0),0)/state.projects.length)+'%' : '0%'},
+      ];
+    },
+    filters: ['status'],
+  },
+  activities: {
+    label: 'Activities',
+    headers: ['Type','Note','Contact','Date'],
+    row: a => [a.type, a.note.slice(0,60), state.contacts.find(c=>c.id===a.contactId)?.name||'—', fmtDate(a.created_at)],
+    summary: () => {
+      const types = {};
+      state.activities.forEach(a=>{ types[a.type]=(types[a.type]||0)+1; });
+      const top = Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
+      return [
+        {label:'Total Activities', val: state.activities.length},
+        {label:'Calls',            val: state.activities.filter(a=>a.type==='Call').length},
+        {label:'Meetings',         val: state.activities.filter(a=>a.type==='Meeting').length},
+        {label:'Top Type',         val: top?top[0]:'—'},
+      ];
+    },
+    filters: ['type'],
+  },
+  pipeline: {
+    label: 'Pipeline',
+    headers: ['Stage','Count','Total Value (₹)','Avg Value (₹)','% of Total'],
+    row: null,
+    summary: () => {
+      const won = state.leads.filter(l=>l.stage==='Won');
+      const totalVal = state.leads.reduce((s,l)=>s+(l.value||0),0);
+      return [
+        {label:'Pipeline Value',   val: '₹'+fmtMoney(totalVal)},
+        {label:'Weighted Forecast',val: '₹'+fmtMoney(state.leads.filter(l=>l.stage==='Qualified'||l.stage==='Proposal').reduce((a,l)=>a+(l.value||0)*({'Qualified':0.4,'Proposal':0.7}[l.stage]||0),0)+won.reduce((s,l)=>s+(l.value||0),0))},
+        {label:'Deals in Pipeline',val: state.leads.filter(l=>l.stage!=='Won'&&l.stage!=='Lost').length},
+        {label:'Won Deals',        val: won.length},
+      ];
+    },
+    filters: [],
+  },
+};
+
+function switchReport(type) {
+  _currentReport = type;
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));
+  const btn = [...document.querySelectorAll('.rtab')].find(b=>b.textContent.toLowerCase().includes(REPORT_CONFIG[type].label.toLowerCase()));
+  if (btn) btn.classList.add('active');
+  renderReport();
+}
+
+function getReportData() {
+  const cfg     = REPORT_CONFIG[_currentReport];
+  const search  = (q('reportSearch')?.value||'').toLowerCase();
+  const filters = {};
+  cfg.filters.forEach(f => { const el = q(`rFilter_${f}`); if(el) filters[f] = el.value; });
+
+  let data;
+  if (_currentReport === 'pipeline') {
+    const stages = ['New','Qualified','Proposal','Won','Lost'];
+    const total  = state.leads.reduce((s,l)=>s+(l.value||0),0);
+    data = stages.map(s => {
+      const leads = state.leads.filter(l=>l.stage===s);
+      const val   = leads.reduce((a,l)=>a+(l.value||0),0);
+      return { _row: [s, leads.length, fmtMoney(val), leads.length?fmtMoney(Math.round(val/leads.length)):0, total?(val/total*100).toFixed(1)+'%':'0%'] };
+    });
+  } else {
+    const source = {
+      contacts: state.contacts, leads: state.leads, tickets: state.tickets,
+      projects: state.projects, activities: state.activities,
+    }[_currentReport] || [];
+    data = source.filter(item => {
+      const row = cfg.row(item).join(' ').toLowerCase();
+      if (search && !row.includes(search)) return false;
+      for (const [key, val] of Object.entries(filters)) {
+        if (val && item[key] !== val) return false;
+      }
+      return true;
+    });
+  }
+  return data;
+}
+
+function renderReport() {
+  const cfg  = REPORT_CONFIG[_currentReport];
+  const data = getReportData();
+
+  // Summary cards
+  const summaryEl = q('reportSummary');
+  if (summaryEl) {
+    const stats = cfg.summary();
+    summaryEl.innerHTML = stats.map(s=>`
+      <div class="report-stat">
+        <div class="report-stat-val">${s.val}</div>
+        <div class="report-stat-label">${s.label}</div>
+      </div>`).join('');
+  }
+
+  // Dynamic filter dropdowns
+  const filtersEl = q('reportFilters');
+  if (filtersEl) {
+    const filterOpts = {
+      stage:    ['New','Qualified','Proposal','Won','Lost'],
+      status:   ['Open','In Progress','Resolved','Planning','Active','On Hold','Completed'],
+      priority: ['Low','Medium','High'],
+      type:     ['Call','Meeting','Demo','Follow-up','Email','Note'],
+    };
+    filtersEl.innerHTML = cfg.filters.map(f=>`
+      <select id="rFilter_${f}" class="filter-select" onchange="renderReport()">
+        <option value="">All ${f.charAt(0).toUpperCase()+f.slice(1)}s</option>
+        ${(filterOpts[f]||[]).map(o=>`<option>${o}</option>`).join('')}
+      </select>`).join('');
+  }
+
+  // Table head
+  const head = q('reportHead');
+  const body = q('reportBody');
+  const empty = q('reportEmpty');
+  if (!head || !body) return;
+
+  head.innerHTML = `<tr>${cfg.headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+
+  if (!data.length) {
+    body.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  if (_currentReport === 'pipeline') {
+    body.innerHTML = data.map(d=>`<tr>${d._row.map((v,i)=>`<td class="${i>=2?'money':''}">${v}</td>`).join('')}</tr>`).join('');
+  } else {
+    body.innerHTML = data.map(item=>{
+      const row = cfg.row(item);
+      return `<tr>${row.map((v,i)=>{
+        if (_currentReport==='leads' && i===2) return `<td class="money">₹${v}</td>`;
+        if (_currentReport==='projects' && i===5) return `<td class="money">₹${v}</td>`;
+        if (v==='—'||v===''||v==='0') return `<td class="muted">${v||'—'}</td>`;
+        // Badge for status/stage/priority cols
+        if (i===1 && ['leads','tickets','projects'].includes(_currentReport)) return `<td><span class="${badgeClass(v)}">${v}</span></td>`;
+        if (i===2 && _currentReport==='tickets') return `<td><span class="${badgeClass(v)}">${v}</span></td>`;
+        return `<td>${v}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+  }
+}
+
+// ── CSV Export ────────────────────────────────────────────────────
+function toCSV(headers, rows) {
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  return [headers.map(escape).join(','), ...rows.map(r=>r.map(escape).join(','))].join('\n');
+}
+function downloadCSV(filename, csv) {
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportCurrentCSV() {
+  const cfg  = REPORT_CONFIG[_currentReport];
+  const data = getReportData();
+  let rows;
+  if (_currentReport === 'pipeline') rows = data.map(d=>d._row);
+  else rows = data.map(item=>cfg.row(item));
+  downloadCSV(`crm-${_currentReport}-${new Date().toISOString().slice(0,10)}.csv`, toCSV(cfg.headers, rows));
+}
+
+function exportAllCSV() {
+  // Export all data types as separate CSV files in a zip-like sequence
+  const exports = ['contacts','leads','tickets','projects','activities'];
+  exports.forEach((type, i) => {
+    setTimeout(() => {
+      const cfg = REPORT_CONFIG[type];
+      const source = {contacts:state.contacts,leads:state.leads,tickets:state.tickets,projects:state.projects,activities:state.activities}[type];
+      const rows = source.map(item=>cfg.row(item));
+      downloadCSV(`crm-${type}-${new Date().toISOString().slice(0,10)}.csv`, toCSV(cfg.headers,rows));
+    }, i * 400);
+  });
+}
+
+function exportCurrentPDF() {
+  // Build a print-friendly HTML page and use window.print()
+  const cfg  = REPORT_CONFIG[_currentReport];
+  const data = getReportData();
+  let rows;
+  if (_currentReport === 'pipeline') rows = data.map(d=>d._row);
+  else rows = data.map(item=>cfg.row(item));
+  const stats = cfg.summary().map(s=>`<div class="stat"><strong>${s.val}</strong><span>${s.label}</span></div>`).join('');
+  const tableRows = rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join('')}</tr>`).join('');
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>CRM ${cfg.label} Report</title>
+    <style>
+      body{font-family:system-ui,sans-serif;padding:2rem;color:#0f172a}
+      h1{font-size:1.4rem;margin-bottom:.25rem}
+      .meta{color:#64748b;font-size:.82rem;margin-bottom:1.5rem}
+      .stats{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+      .stat{background:#f1f5f9;border-radius:8px;padding:.6rem 1rem}
+      .stat strong{display:block;font-size:1.3rem;color:#2563eb}
+      .stat span{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+      table{width:100%;border-collapse:collapse;font-size:.82rem}
+      th{background:#f1f5f9;padding:.5rem .75rem;text-align:left;font-weight:600;text-transform:uppercase;font-size:.7rem;letter-spacing:.05em}
+      td{padding:.45rem .75rem;border-bottom:1px solid #e2e8f0}
+      @media print{body{padding:0}}
+    </style></head><body>
+    <h1>OrgCRM — ${cfg.label} Report</h1>
+    <div class="meta">Generated ${new Date().toLocaleString('en-IN')} · ${rows.length} records</div>
+    <div class="stats">${stats}</div>
+    <table><thead><tr>${cfg.headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${tableRows}</tbody></table>
+    <script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+function printReport() { exportCurrentPDF(); }
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 2: CONTACT TIMELINE
+// ══════════════════════════════════════════════════════════════════
+
+function openTimeline(contactId) {
+  const c = state.contacts.find(x=>x.id===contactId);
+  if (!c) return;
+
+  // Header
+  q('timelineHeader').innerHTML = `
+    <div class="timeline-avatar-lg">${c.name.charAt(0).toUpperCase()}</div>
+    <div>
+      <div class="timeline-contact-name">${c.name}</div>
+      <div class="timeline-contact-sub">${c.company||''} · ${c.email} · ${c.phone||'—'}</div>
+    </div>`;
+
+  // Build unified event list
+  const events = [];
+
+  // Contact creation
+  events.push({ type:'contact', icon:'👤', title:'Contact created', body:`Added to CRM`, date: c.created_at||new Date().toISOString() });
+
+  // Leads
+  state.leads.filter(l=>l.contact_id===contactId).forEach(l=>{
+    events.push({ type:'lead', icon:'🔥', title:`Lead: ${l.title}`, body:`Stage: ${l.stage} · Value: ₹${fmtMoney(l.value)}`, date: l.created_at||new Date().toISOString() });
+  });
+
+  // Tickets
+  state.tickets.filter(t=>t.contact_id===contactId).forEach(t=>{
+    events.push({ type:'ticket', icon:'🎫', title:`Ticket: ${t.title}`, body:`${t.priority} priority · ${t.status}`, date: t.created_at||new Date().toISOString() });
+  });
+
+  // Activities
+  state.activities.filter(a=>a.contactId===contactId).forEach(a=>{
+    const icons = {Call:'📞',Meeting:'🤝',Demo:'💻','Follow-up':'🔁',Email:'📧',Note:'📝'};
+    events.push({ type:'activity', icon: icons[a.type]||'📋', title:`${a.type}`, body: a.note, date: a.created_at||new Date().toISOString() });
+  });
+
+  // Projects
+  state.projects.filter(p=>p.contactId===contactId).forEach(p=>{
+    events.push({ type:'project', icon:'📁', title:`Project: ${p.name}`, body:`${p.status} · ${p.progress||0}% complete · PM: ${p.manager}`, date: p.created_at||new Date().toISOString() });
+  });
+
+  // Documents
+  state.documents.filter(d=>{
+    const proj = d.projectId ? state.projects.find(p=>p.id===d.projectId) : null;
+    return proj?.contactId===contactId;
+  }).forEach(d=>{
+    events.push({ type:'doc', icon:'📎', title:`Document: ${d.name}`, body:`${d.type} · ${fmtSize(d.size)} · uploaded by ${d.uploadedBy}`, date: d.uploadedAt||new Date().toISOString() });
+  });
+
+  // Sort newest first
+  events.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  if (!events.length) {
+    q('timelineBody').innerHTML = `<div class="timeline-empty">No interactions recorded yet for this contact.</div>`;
+  } else {
+    q('timelineBody').innerHTML = `
+      <div style="font-size:.75rem;color:var(--text-3);margin-bottom:.75rem">${events.length} events</div>
+      <div class="timeline-feed">
+        ${events.map(ev=>`
+          <div class="timeline-event type-${ev.type}">
+            <div class="timeline-event-header">
+              <span class="timeline-event-icon">${ev.icon}</span>
+              <span class="timeline-event-title">${ev.title}</span>
+              <span class="timeline-event-time">${timeAgo(ev.date)}</span>
+            </div>
+            <div class="timeline-event-body">${ev.body}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+  openModal('timelineModal');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 3: DRAG & DROP KANBAN
+// ══════════════════════════════════════════════════════════════════
+
+let _dragLeadId = null;
+
+function kanbanDragStart(e, leadId) {
+  _dragLeadId = leadId;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', leadId);
+}
+
+function kanbanDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.kanban-cards').forEach(c=>c.classList.remove('drag-target'));
+}
+
+function kanbanDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  // Highlight the column
+  const col = e.currentTarget;
+  document.querySelectorAll('.kanban-cards').forEach(c=>c.classList.remove('drag-target'));
+  col.classList.add('drag-target');
+}
+
+async function kanbanDrop(e, newStage) {
+  e.preventDefault();
+  document.querySelectorAll('.kanban-cards').forEach(c=>c.classList.remove('drag-target'));
+  const leadId = _dragLeadId || e.dataTransfer.getData('text/plain');
+  if (!leadId) return;
+
+  const lead = state.leads.find(l=>l.id===leadId);
+  if (!lead || lead.stage===newStage) return;
+
+  const oldStage = lead.stage;
+
+  // If dropping into Won or Lost, capture reason
+  if ((newStage==='Won'||newStage==='Lost') && state.session) {
+    const reason = prompt(`Moving to ${newStage}. Enter a reason (optional):`);
+    // Log activity for the stage change
+    state.activities.unshift({
+      id: crypto.randomUUID(), created_at: new Date().toISOString(),
+      type: 'Note', contactId: lead.contact_id||null,
+      note: `Lead "${lead.title}" moved from ${oldStage} → ${newStage}${reason?': '+reason:''}`
+    });
+    persistLocal();
+  }
+
+  // Update via API
+  if (state.session && can('leads.update')) {
+    const ok = await apiUpdate('leads', leadId, { stage: newStage });
+    if (ok) {
+      lead.stage = newStage;
+      const r = await apiFetch('/leads');
+      if (r && r.ok) state.leads = await r.json();
+    }
+  } else {
+    // Offline / read-only: still update locally for demo
+    lead.stage = newStage;
+  }
+
+  renderSales();
+  renderDashboard();
+}

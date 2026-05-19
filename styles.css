@@ -471,3 +471,47 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
   .doc-layout { grid-template-columns: 1fr; }
   .doc-stats-bar { flex-wrap: wrap; }
 }
+
+/* ══ Reports ══ */
+.report-tabs { display: flex; gap: .3rem; margin-bottom: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .25rem; width: fit-content; flex-wrap: wrap; }
+.rtab { background: none; border: none; padding: .38rem .85rem; border-radius: 7px; font-size: .82rem; font-weight: 500; color: var(--text-2); cursor: pointer; transition: all .15s; }
+.rtab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.report-toolbar { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; flex-wrap: wrap; }
+.report-filters { display: flex; gap: .4rem; flex-wrap: wrap; }
+.report-summary { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.report-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem 1rem; min-width: 120px; box-shadow: var(--shadow); }
+.report-stat-val { font-size: 1.4rem; font-weight: 800; font-family: var(--mono); color: var(--accent); }
+.report-stat-label { font-size: .72rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.report-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow); }
+.report-table { min-width: 700px; }
+.report-empty { padding: 2rem; text-align: center; color: var(--text-3); font-size: .9rem; }
+.report-table td.money { font-family: var(--mono); color: var(--accent); }
+.report-table td.muted { color: var(--text-3); font-size: .8rem; }
+
+/* ══ Contact Timeline ══ */
+.timeline-contact-header { padding: 1rem 1.25rem; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .75rem; }
+.timeline-avatar-lg { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; flex-shrink:0; }
+.timeline-contact-name { font-weight: 700; font-size: 1rem; }
+.timeline-contact-sub { font-size: .8rem; color: var(--text-2); }
+.timeline-body { max-height: 520px; overflow-y: auto; padding: 1.25rem; }
+.timeline-feed { position: relative; padding-left: 2rem; }
+.timeline-feed::before { content:''; position:absolute; left:.6rem; top:0; bottom:0; width:2px; background:var(--border); border-radius:999px; }
+.timeline-event { position: relative; margin-bottom: 1.25rem; }
+.timeline-event::before { content:''; position:absolute; left:-1.57rem; top:.3rem; width:10px; height:10px; border-radius:50%; background:var(--surface); border:2px solid var(--border-strong); }
+.timeline-event.type-lead::before   { border-color:#7c3aed; background:#f3e8ff; }
+.timeline-event.type-ticket::before { border-color:#d97706; background:#fef3c7; }
+.timeline-event.type-activity::before { border-color:#2563eb; background:#dbeafe; }
+.timeline-event.type-doc::before    { border-color:#0d9488; background:#ccfbf1; }
+.timeline-event.type-project::before { border-color:#16a34a; background:#dcfce7; }
+.timeline-event-header { display:flex; align-items:center; gap:.5rem; margin-bottom:.2rem; }
+.timeline-event-icon { font-size:.9rem; }
+.timeline-event-title { font-size:.83rem; font-weight:600; }
+.timeline-event-time { font-size:.72rem; color:var(--text-3); margin-left:auto; }
+.timeline-event-body { font-size:.8rem; color:var(--text-2); line-height:1.5; }
+.timeline-empty { text-align:center; color:var(--text-3); padding:2rem; font-size:.9rem; }
+
+/* ══ Drag & Drop Kanban ══ */
+.kanban-card { cursor: grab; transition: box-shadow .15s, transform .15s; }
+.kanban-card:active { cursor: grabbing; }
+.kanban-card.dragging { opacity: .4; transform: scale(.97); box-shadow: none; }
+.kanban-cards.drag-target { background: rgba(37,99,235,.06); border: 2px dashed #93c5fd; border-radius: 8px; min-height: 60px; }
