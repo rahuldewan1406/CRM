@@ -13,6 +13,7 @@ const state = {
   tasks:         JSON.parse(localStorage.getItem('crm_tasks')       || '[]'),
   milestones:    JSON.parse(localStorage.getItem('crm_milestones')  || '[]'),
   activities:    JSON.parse(localStorage.getItem('crm_activities')  || '[]'),
+  documents:     JSON.parse(localStorage.getItem('crm_documents')   || '[]'),
   session: null, accessToken: null, refreshToken: null, permissions: new Set(),
 };
 
@@ -48,6 +49,7 @@ function persistLocal() {
   localStorage.setItem('crm_tasks', JSON.stringify(state.tasks));
   localStorage.setItem('crm_milestones', JSON.stringify(state.milestones));
   localStorage.setItem('crm_activities', JSON.stringify(state.activities));
+  localStorage.setItem('crm_documents',  JSON.stringify(state.documents));
 }
 
 // ── API fetch ─────────────────────────────────────────────────────────────────
@@ -609,6 +611,10 @@ function renderProjectBoard() {
           <div class="project-card-progress-label"><span>Progress</span><span>${p.progress||0}%</span></div>
           ${pBar(p.progress)}
         </div>
+        <div class="project-card-meta" style="margin-top:.3rem">
+          <span class="doc-badge">📎 ${state.documents.filter(d=>d.projectId===p.id).length} docs</span>
+          <button class="btn-mail-status" onclick="openModal('uploadDocModal');setTimeout(()=>{const el=q('docProjectTag');if(el)el.value='${p.id}';},100)">📎 Attach</button>
+        </div>
         <div class="project-card-actions">${actBtns('projects',p.id)}<button class="btn-mail-status" onclick="openProjectMailModal('${p.id}')">📧 Mail Status</button></div>
       </div>`).join('') || '<div style="color:var(--text-3);font-size:.75rem;padding:.3rem">None</div>';
   });
@@ -622,6 +628,7 @@ function renderProjectList() {
       <td>${p.manager}</td>
       <td class="td-progress">${pBar(p.progress)} <span style="font-size:.72rem;color:var(--text-3)">${p.progress||0}%</span></td>
       <td style="font-family:var(--mono);font-size:.78rem">${fmtDate(p.dueDate)}</td>
+      <td><span class="doc-badge">📎 ${state.documents.filter(d=>d.projectId===p.id).length}</span></td>
       <td style="display:flex;gap:.3rem;align-items:center">${actBtns('projects',p.id)}<button class="btn-mail-status" onclick="openProjectMailModal('${p.id}')">📧</button></td>
     </tr>`).join('') || `<tr><td colspan="6" style="color:var(--text-3);font-size:.82rem;padding:1rem;text-align:center">No projects yet. Click "+ New Project" to start.</td></tr>`;
 }
@@ -748,6 +755,8 @@ function renderAll() {
   renderTickets();
   syncContactDropdowns();
   syncProjectDropdowns();
+  syncDocDropdowns();
+  renderDocuments();
 }
 
 
@@ -866,6 +875,308 @@ This report was generated automatically by OrgCRM.
     banner.className='status-banner error'; banner.classList.remove('hidden');
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+//  DOCUMENT MANAGEMENT SYSTEM
+// ══════════════════════════════════════════════════════════════════
+
+// ── File type helpers ─────────────────────────────────────────────
+const FILE_ICONS = {
+  pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗',
+  txt: '📄', csv: '📊', png: '🖼️', jpg: '🖼️', jpeg: '🖼️',
+  gif: '🖼️', webp: '🖼️', ppt: '📙', pptx: '📙', zip: '📦',
+};
+function fileIcon(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] || '📄';
+}
+function fileType(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if (['pdf'].includes(ext)) return 'PDF';
+  if (['doc','docx','txt','rtf'].includes(ext)) return 'Document';
+  if (['xls','xlsx','csv'].includes(ext)) return 'Spreadsheet';
+  if (['png','jpg','jpeg','gif','webp'].includes(ext)) return 'Image';
+  if (['ppt','pptx'].includes(ext)) return 'Presentation';
+  return 'Other';
+}
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+// ── Pending file queue ────────────────────────────────────────────
+let _pendingFiles = [];
+let _renamingDocId = null;
+let _activeDocId = null;
+
+function handleDragOver(e) {
+  e.preventDefault();
+  q('docDropZone').classList.add('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  q('docDropZone').classList.remove('drag-over');
+  addFilesToQueue([...e.dataTransfer.files]);
+}
+function handleFileSelect(e) { addFilesToQueue([...e.target.files]); }
+
+function addFilesToQueue(files) {
+  const MAX = 5 * 1024 * 1024;
+  const errEl = q('docUploadError');
+  files.forEach(file => {
+    if (file.size > MAX) { if(errEl) errEl.textContent = file.name + ' exceeds 5MB limit.'; return; }
+    if (_pendingFiles.find(f=>f.name===file.name&&f.size===file.size)) return; // dedupe
+    _pendingFiles.push(file);
+  });
+  renderPendingFiles();
+}
+
+function renderPendingFiles() {
+  const list = q('docFilePreviewList');
+  if (!list) return;
+  list.innerHTML = _pendingFiles.map((f,i) => `
+    <div class="doc-file-preview-item">
+      <span>${fileIcon(f.name)}</span>
+      <span class="doc-file-preview-name">${f.name}</span>
+      <span class="doc-file-preview-size">${fmtSize(f.size)}</span>
+      <button class="doc-file-preview-remove" onclick="removePendingFile(${i})">✕</button>
+    </div>`).join('') || '';
+}
+
+function removePendingFile(idx) {
+  _pendingFiles.splice(idx, 1);
+  renderPendingFiles();
+}
+
+// ── Save documents ────────────────────────────────────────────────
+async function saveDocuments() {
+  const errEl = q('docUploadError');
+  const btn   = q('saveDocBtn');
+  if (errEl) errEl.textContent = '';
+  if (!_pendingFiles.length) { if(errEl) errEl.textContent='Please select at least one file.'; return; }
+
+  const projectId = q('docProjectTag').value || null;
+  const taskId    = q('docTaskTag').value    || null;
+  const status    = q('docStatusTag').value  || null;
+  const notes     = q('docNotes').value.trim();
+
+  if (btn) { btn.disabled=true; btn.textContent='Uploading…'; }
+
+  const promises = _pendingFiles.map(file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const doc = {
+        id:        crypto.randomUUID(),
+        name:      file.name,
+        type:      fileType(file.name),
+        size:      file.size,
+        mimeType:  file.type,
+        data:      e.target.result, // base64 data URL
+        projectId, taskId, status, notes,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: state.session?.name || 'Unknown',
+      };
+      resolve(doc);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  }));
+
+  try {
+    const docs = await Promise.all(promises);
+    docs.forEach(d => state.documents.push(d));
+    persistLocal();
+    _pendingFiles = [];
+    renderPendingFiles();
+    // Reset form
+    ['docProjectTag','docTaskTag','docStatusTag'].forEach(id=>{const el=q(id);if(el)el.value='';});
+    q('docNotes').value='';
+    q('docFileInput').value='';
+    if (btn) { btn.disabled=false; btn.textContent='Upload'; }
+    closeModal('uploadDocModal');
+    renderDocuments();
+    renderAll(); // update badges
+  } catch(err) {
+    if (btn) { btn.disabled=false; btn.textContent='Upload'; }
+    if (errEl) errEl.textContent='Upload failed: '+err.message;
+  }
+}
+
+// ── Render documents ──────────────────────────────────────────────
+function syncDocDropdowns() {
+  const projOpts = '<option value="">— None —</option>' + state.projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const taskOpts = '<option value="">— None —</option>' + state.tasks.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  const filtProjOpts = '<option value="">All Projects</option>' + state.projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const filtTaskOpts = '<option value="">All Tasks</option>' + state.tasks.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  ['docProjectTag','docProjectFilter'].forEach(id=>{const el=q(id);if(el)el.innerHTML=id.includes('Filter')?filtProjOpts:projOpts;});
+  ['docTaskTag','docTaskFilter'].forEach(id=>{const el=q(id);if(el)el.innerHTML=id.includes('Filter')?filtTaskOpts:taskOpts;});
+}
+
+function renderDocuments() {
+  const search    = (q('docSearch')?.value||'').toLowerCase();
+  const projF     = q('docProjectFilter')?.value||'';
+  const taskF     = q('docTaskFilter')?.value||'';
+  const statusF   = q('docStatusFilter')?.value||'';
+  const typeF     = q('docTypeFilter')?.value||'';
+
+  let docs = [...state.documents].sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt));
+  if (search)  docs = docs.filter(d=>d.name.toLowerCase().includes(search)||(d.notes||'').toLowerCase().includes(search));
+  if (projF)   docs = docs.filter(d=>d.projectId===projF);
+  if (taskF)   docs = docs.filter(d=>d.taskId===taskF);
+  if (statusF) docs = docs.filter(d=>d.status===statusF);
+  if (typeF)   docs = docs.filter(d=>d.type===typeF);
+
+  // Stats
+  const totalSize = state.documents.reduce((s,d)=>s+d.size,0);
+  const el = id => q(id);
+  if(el('docTotalCount'))   el('docTotalCount').textContent   = state.documents.length;
+  if(el('docProjectCount')) el('docProjectCount').textContent = state.documents.filter(d=>d.projectId).length;
+  if(el('docTaskCount'))    el('docTaskCount').textContent    = state.documents.filter(d=>d.taskId).length;
+  if(el('docTotalSize'))    el('docTotalSize').textContent    = fmtSize(totalSize);
+
+  const listEl  = q('docList');
+  const emptyEl = q('docEmpty');
+  if (!docs.length) {
+    listEl.innerHTML = '';
+    if(emptyEl) emptyEl.classList.remove('hidden');
+    return;
+  }
+  if(emptyEl) emptyEl.classList.add('hidden');
+
+  listEl.innerHTML = docs.map(d => {
+    const proj    = d.projectId ? state.projects.find(p=>p.id===d.projectId) : null;
+    const task    = d.taskId    ? state.tasks.find(t=>t.id===d.taskId)       : null;
+    const tags    = [
+      proj  ? `<span class="doc-tag">📁 ${proj.name.slice(0,20)}</span>` : '',
+      task  ? `<span class="doc-tag task-tag">✅ ${task.title.slice(0,20)}</span>` : '',
+      d.status ? `<span class="doc-tag status-tag">${d.status}</span>` : '',
+    ].filter(Boolean).join('');
+    return `
+      <div class="doc-item ${_activeDocId===d.id?'active':''}" onclick="previewDoc('${d.id}')">
+        <div class="doc-icon">${fileIcon(d.name)}</div>
+        <div class="doc-info">
+          <div class="doc-name">${d.name}</div>
+          <div class="doc-meta">
+            <span>${d.type}</span>
+            <span>${fmtSize(d.size)}</span>
+            <span>${new Date(d.uploadedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>
+            <span>by ${d.uploadedBy}</span>
+          </div>
+          ${tags ? `<div class="doc-tags">${tags}</div>` : ''}
+        </div>
+        <div class="doc-actions">
+          <button class="doc-action-btn" onclick="event.stopPropagation();downloadDoc('${d.id}')" title="Download">⬇</button>
+          <button class="doc-action-btn" onclick="event.stopPropagation();openRenameDoc('${d.id}')" title="Rename">✏️</button>
+          <button class="doc-action-btn danger" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Delete">🗑</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Preview ───────────────────────────────────────────────────────
+function previewDoc(id) {
+  _activeDocId = id;
+  renderDocuments(); // re-render to update active state
+  const doc   = state.documents.find(d=>d.id===id);
+  const panel = q('docPreviewPanel');
+  if (!doc || !panel) return;
+
+  const proj   = doc.projectId ? state.projects.find(p=>p.id===doc.projectId) : null;
+  const task   = doc.taskId    ? state.tasks.find(t=>t.id===doc.taskId)       : null;
+  const tags   = [
+    proj  ? `<span class="doc-tag">📁 ${proj.name}</span>` : '',
+    task  ? `<span class="doc-tag task-tag">✅ ${task.title}</span>` : '',
+    doc.status ? `<span class="doc-tag status-tag">${doc.status}</span>` : '',
+  ].filter(Boolean).join('');
+
+  let previewBody = '';
+  const ext = doc.name.split('.').pop().toLowerCase();
+  if (['png','jpg','jpeg','gif','webp'].includes(ext)) {
+    previewBody = `<img src="${doc.data}" alt="${doc.name}" />`;
+  } else if (ext === 'pdf') {
+    previewBody = `<embed src="${doc.data}" type="application/pdf" />`;
+  } else if (['txt','csv','json','md'].includes(ext)) {
+    // Decode base64 to text
+    try {
+      const b64 = doc.data.split(',')[1];
+      const text = decodeURIComponent(escape(atob(b64)));
+      previewBody = `<div class="doc-preview-text">${text.slice(0,3000)}${text.length>3000?'\n\n[Truncated…]':''}</div>`;
+    } catch { previewBody = `<div class="doc-preview-text">Preview not available.</div>`; }
+  } else {
+    previewBody = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--text-3);gap:1rem">
+      <div style="font-size:3rem">${fileIcon(doc.name)}</div>
+      <p>Preview not available for this file type.</p>
+      <button class="btn-primary-sm" onclick="downloadDoc('${doc.id}')">⬇ Download to view</button>
+    </div>`;
+  }
+
+  panel.innerHTML = `
+    <div class="doc-preview-header">
+      <div class="doc-preview-name">${fileIcon(doc.name)} ${doc.name}</div>
+      <div class="doc-preview-meta">
+        <span>${doc.type}</span><span>${fmtSize(doc.size)}</span>
+        <span>Uploaded ${new Date(doc.uploadedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>
+        <span>by ${doc.uploadedBy}</span>
+      </div>
+      ${tags ? `<div class="doc-preview-tags">${tags}</div>` : ''}
+    </div>
+    <div class="doc-preview-body">
+      ${previewBody}
+      ${doc.notes ? `<div class="doc-preview-notes">📝 ${doc.notes}</div>` : ''}
+    </div>
+    <div class="doc-preview-actions">
+      <button class="btn-primary-sm" onclick="downloadDoc('${doc.id}')">⬇ Download</button>
+      <button class="btn-secondary-sm" onclick="openRenameDoc('${doc.id}')">✏️ Rename</button>
+      <button class="btn-secondary-sm" style="color:var(--rose);border-color:#fca5a5" onclick="deleteDoc('${doc.id}')">🗑 Delete</button>
+    </div>`;
+}
+
+// ── Document actions ──────────────────────────────────────────────
+function downloadDoc(id) {
+  const doc = state.documents.find(d=>d.id===id);
+  if (!doc) return;
+  const a = document.createElement('a');
+  a.href = doc.data;
+  a.download = doc.name;
+  a.click();
+}
+
+function deleteDoc(id) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  state.documents = state.documents.filter(d=>d.id!==id);
+  if (_activeDocId === id) {
+    _activeDocId = null;
+    const panel = q('docPreviewPanel');
+    if (panel) panel.innerHTML = '<div class="doc-preview-empty"><div style="font-size:2rem">📄</div><p>Select a document to preview</p></div>';
+  }
+  persistLocal(); renderDocuments(); renderAll();
+}
+
+function openRenameDoc(id) {
+  _renamingDocId = id;
+  const doc = state.documents.find(d=>d.id===id);
+  if (!doc) return;
+  q('renameDocInput').value = doc.name;
+  openModal('renameDocModal');
+  setTimeout(()=>q('renameDocInput').select(), 100);
+}
+
+function confirmRename() {
+  const newName = q('renameDocInput').value.trim();
+  if (!newName) { alert('Name cannot be empty.'); return; }
+  const doc = state.documents.find(d=>d.id===_renamingDocId);
+  if (doc) { doc.name = newName; persistLocal(); renderDocuments(); if(_activeDocId===doc.id) previewDoc(doc.id); }
+  closeModal('renameDocModal');
+  _renamingDocId = null;
+}
+
+// Allow Enter key in rename input
+document.addEventListener('DOMContentLoaded', ()=>{
+  const ri = q('renameDocInput');
+  if (ri) ri.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmRename(); });
+});
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 renderSession();

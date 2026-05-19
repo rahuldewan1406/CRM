@@ -25,6 +25,7 @@
       <button class="tnav" data-tab="sales">Sales</button>
       <button class="tnav" data-tab="projects">Projects</button>
       <button class="tnav" data-tab="support">Support</button>
+      <button class="tnav" data-tab="documents">Documents</button>
       <button class="tnav" data-tab="email">Email</button>
     </nav>
     <div class="topbar-user">
@@ -307,6 +308,66 @@
     </section>
 
     <!-- ══════════════════════════════════════════════════
+         DOCUMENTS
+    ══════════════════════════════════════════════════ -->
+    <section id="documents" class="page">
+      <div class="page-header">
+        <h1>Document Management</h1>
+        <button class="btn-primary-sm" onclick="openModal('uploadDocModal')">⬆ Upload Document</button>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="doc-stats-bar">
+        <div class="doc-stat"><span id="docTotalCount">0</span><small>Total Docs</small></div>
+        <div class="doc-stat"><span id="docProjectCount">0</span><small>Linked to Projects</small></div>
+        <div class="doc-stat"><span id="docTaskCount">0</span><small>Linked to Tasks</small></div>
+        <div class="doc-stat doc-stat-size"><span id="docTotalSize">0 KB</span><small>Total Size</small></div>
+      </div>
+
+      <!-- Filter toolbar -->
+      <div class="doc-toolbar">
+        <input id="docSearch" class="search-box" placeholder="🔍  Search documents…" oninput="renderDocuments()" />
+        <select id="docProjectFilter" class="filter-select" onchange="renderDocuments()">
+          <option value="">All Projects</option>
+        </select>
+        <select id="docTaskFilter" class="filter-select" onchange="renderDocuments()">
+          <option value="">All Tasks</option>
+        </select>
+        <select id="docStatusFilter" class="filter-select" onchange="renderDocuments()">
+          <option value="">All Statuses</option>
+          <option>Planning</option><option>Active</option><option>On Hold</option><option>Completed</option>
+          <option>To Do</option><option>In Progress</option><option>Done</option><option>Blocked</option>
+        </select>
+        <select id="docTypeFilter" class="filter-select" onchange="renderDocuments()">
+          <option value="">All Types</option>
+          <option>PDF</option><option>Image</option><option>Document</option><option>Spreadsheet</option><option>Other</option>
+        </select>
+      </div>
+
+      <!-- Main layout -->
+      <div class="doc-layout">
+        <!-- Document list -->
+        <div class="doc-list-panel">
+          <div id="docList" class="doc-list"></div>
+          <div id="docEmpty" class="doc-empty hidden">
+            <div class="doc-empty-icon">📂</div>
+            <p>No documents found.</p>
+            <button class="btn-primary-sm" onclick="openModal('uploadDocModal')">Upload your first document</button>
+          </div>
+        </div>
+
+        <!-- Preview panel -->
+        <div class="doc-preview-panel" id="docPreviewPanel">
+          <div class="doc-preview-empty">
+            <div style="font-size:2rem">📄</div>
+            <p>Select a document to preview</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════
          EMAIL CENTER
     ══════════════════════════════════════════════════ -->
     <section id="email" class="page">
@@ -510,6 +571,52 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Upload Document Modal -->
+  <dialog id="uploadDocModal" class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>⬆ Upload Document</h3>
+      <button class="modal-close" onclick="closeModal('uploadDocModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="doc-upload-zone" id="docDropZone" onclick="q('docFileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+        <div class="doc-upload-icon">📁</div>
+        <p class="doc-upload-label">Click to browse or drag & drop files here</p>
+        <p class="doc-upload-sub">PDF, images, Word, Excel, text files · Max 5MB per file</p>
+        <input type="file" id="docFileInput" class="hidden" multiple onchange="handleFileSelect(event)" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp" />
+      </div>
+      <div id="docFilePreviewList" class="doc-file-preview-list"></div>
+      <label>Tag to Project<select id="docProjectTag"><option value="">— None —</option></select></label>
+      <label>Tag to Task<select id="docTaskTag"><option value="">— None —</option></select></label>
+      <label>Tag to Status<select id="docStatusTag">
+        <option value="">— None —</option>
+        <option>Planning</option><option>Active</option><option>On Hold</option><option>Completed</option>
+        <option>To Do</option><option>In Progress</option><option>Done</option><option>Blocked</option>
+      </select></label>
+      <label>Notes (optional)<textarea id="docNotes" rows="2" placeholder="Any notes about this document…"></textarea></label>
+      <p id="docUploadError" style="color:var(--rose);font-size:.8rem;min-height:1rem"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('uploadDocModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" id="saveDocBtn" onclick="saveDocuments()">Upload</button>
+    </div>
+  </dialog>
+
+  <!-- Rename Document Modal -->
+  <dialog id="renameDocModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>Rename Document</h3>
+      <button class="modal-close" onclick="closeModal('renameDocModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Document Name<input id="renameDocInput" placeholder="New name…" /></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('renameDocModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="confirmRename()">Rename</button>
+    </div>
   </dialog>
 
 
