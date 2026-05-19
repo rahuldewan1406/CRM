@@ -725,7 +725,17 @@
       <label>Company<input id="c_company" placeholder="Acme Corp" /></label>
       <label>Gender<select id="c_gender"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
       <label>Age<input id="c_age" type="number" min="1" max="120" placeholder="30" /></label>
-      <label class="span2">Location<input id="c_location" placeholder="Mumbai, India" /></label>
+      <label class="span2">Location
+        <div class="location-field-wrap" id="locationWrap">
+          <input id="c_location" class="location-input" placeholder="Type or select a city…" autocomplete="off"
+            oninput="filterCityDropdown(this.value)"
+            onfocus="showCityDropdown()"
+            onblur="setTimeout(hideCityDropdown, 200)"
+          />
+          <span class="location-chevron">▾</span>
+          <div id="cityDropdown" class="city-dropdown hidden"></div>
+        </div>
+      </label>
       <p id="contactFormError" class="span2" style="color:var(--rose);font-size:.8rem;min-height:1rem;margin:0"></p>
       <div class="modal-footer span2">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('contactModal')">Cancel</button>

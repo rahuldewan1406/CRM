@@ -1634,6 +1634,138 @@ function formatPhoneOnBlur(inputId) {
   if (normalised && /^[6-9]\d{9}$/.test(normalised)) el.value = normalised;
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+//  LOCATION CITY DROPDOWN
+// ══════════════════════════════════════════════════════════════════
+
+const INDIA_CITIES = {
+  'Andhra Pradesh':       ['Visakhapatnam','Vijayawada','Guntur','Nellore','Kurnool','Tirupati','Rajahmundry','Kakinada','Anantapur','Eluru','Ongole','Nandyal','Kadapa'],
+  'Arunachal Pradesh':    ['Itanagar','Naharlagun','Pasighat','Tezpur'],
+  'Assam':                ['Guwahati','Dibrugarh','Silchar','Jorhat','Nagaon','Tinsukia','Tezpur','Bongaigaon','Dhubri'],
+  'Bihar':                ['Patna','Gaya','Bhagalpur','Muzaffarpur','Darbhanga','Ara','Begusarai','Katihar','Munger','Purnia','Saharsa','Sasaram'],
+  'Chhattisgarh':         ['Raipur','Bhilai','Bilaspur','Korba','Durg','Rajnandgaon','Jagdalpur','Ambikapur'],
+  'Goa':                  ['Panaji','Margao','Vasco da Gama','Mapusa','Ponda','Bicholim'],
+  'Gujarat':              ['Ahmedabad','Surat','Vadodara','Rajkot','Bhavnagar','Jamnagar','Gandhinagar','Junagadh','Anand','Mehsana','Nadiad','Morbi','Bharuch','Navsari','Valsad','Porbandar','Surendranagar'],
+  'Haryana':              ['Faridabad','Gurgaon','Panipat','Ambala','Yamunanagar','Rohtak','Hisar','Karnal','Sonipat','Panchkula','Bhiwani','Sirsa','Rewari','Jhajjar'],
+  'Himachal Pradesh':     ['Shimla','Dharamsala','Solan','Mandi','Kullu','Manali','Baddi','Nahan','Bilaspur'],
+  'Jharkhand':            ['Ranchi','Jamshedpur','Dhanbad','Bokaro','Deoghar','Phusro','Hazaribagh','Giridih','Ramgarh','Medininagar'],
+  'Karnataka':            ['Bengaluru','Mysuru','Hubballi','Mangaluru','Belagavi','Kalaburagi','Davanagere','Ballari','Shivamogga','Tumakuru','Vijayapura','Bidar','Udupi','Dharwad','Raichur'],
+  'Kerala':               ['Thiruvananthapuram','Kochi','Kozhikode','Thrissur','Kollam','Kannur','Palakkad','Alappuzha','Malappuram','Kottayam','Kasaragod','Pathanamthitta'],
+  'Madhya Pradesh':       ['Bhopal','Indore','Gwalior','Jabalpur','Ujjain','Sagar','Dewas','Satna','Ratlam','Rewa','Murwara','Singrauli','Burhanpur','Khandwa','Bhind','Chhindwara','Vidisha'],
+  'Maharashtra':          ['Mumbai','Pune','Nagpur','Thane','Pimpri-Chinchwad','Nashik','Kalyan','Vasai-Virar','Aurangabad','Navi Mumbai','Solapur','Mira-Bhayandar','Bhiwandi','Amravati','Nanded','Kolhapur','Malegaon','Akola','Latur','Dhule','Ahmednagar','Sangli','Jalgaon','Chandrapur'],
+  'Manipur':              ['Imphal','Thoubal','Bishnupur','Churachandpur'],
+  'Meghalaya':            ['Shillong','Tura','Jowai','Nongstoin'],
+  'Mizoram':              ['Aizawl','Lunglei','Saiha','Champhai'],
+  'Nagaland':             ['Kohima','Dimapur','Mokokchung','Tuensang','Wokha'],
+  'Odisha':               ['Bhubaneswar','Cuttack','Rourkela','Brahmapur','Sambalpur','Puri','Balasore','Baripada','Bhadrak','Jharsuguda','Angul','Dhenkanal','Kendujhar'],
+  'Punjab':               ['Ludhiana','Amritsar','Jalandhar','Patiala','Bathinda','Hoshiarpur','Mohali','Batala','Pathankot','Moga','Abohar','Malerkotla','Khanna','Phagwara','Muktsar'],
+  'Rajasthan':            ['Jaipur','Jodhpur','Kota','Bikaner','Ajmer','Udaipur','Bhilwara','Alwar','Bharatpur','Sikar','Pali','Sri Ganganagar','Srikaranpur','Tonk','Beawar','Hanumangarh','Dhaulpur','Dausa','Baran'],
+  'Sikkim':               ['Gangtok','Namchi','Mangan','Gyalshing'],
+  'Tamil Nadu':           ['Chennai','Coimbatore','Madurai','Tiruchirappalli','Salem','Tirunelveli','Tiruppur','Vellore','Erode','Thoothukudi','Dindigul','Thanjavur','Ranipet','Sivakasi','Karur','Udhagamandalam','Hosur','Nagercoil','Kanchipuram','Kumbakonam','Tambaram'],
+  'Telangana':            ['Hyderabad','Warangal','Nizamabad','Karimnagar','Khammam','Mahbubnagar','Ramagundam','Siddipet','Miryalaguda','Suryapet','Mancherial','Adilabad','Nalgonda','Kothagudem'],
+  'Tripura':              ['Agartala','Dharmanagar','Udaipur','Kailasahar','Belonia'],
+  'Uttar Pradesh':        ['Lucknow','Kanpur','Ghaziabad','Agra','Varanasi','Meerut','Prayagraj','Bareilly','Aligarh','Moradabad','Saharanpur','Gorakhpur','Noida','Firozabad','Jhansi','Muzaffarnagar','Mathura','Shahjahanpur','Rampur','Shikohabad','Bulandshahr','Unnao','Rae Bareli','Farrukhabad','Bahraich','Hapur','Etawah','Lakhimpur','Fatehpur'],
+  'Uttarakhand':          ['Dehradun','Haridwar','Roorkee','Haldwani','Rudrapur','Kashipur','Rishikesh','Nainital','Mussoorie','Pithoragarh'],
+  'West Bengal':          ['Kolkata','Howrah','Durgapur','Asansol','Siliguri','Bardhaman','Malda','Baharampur','Habra','Kharagpur','Shantipur','Dankuni','Dhulian','Raniganj','Haldia','Raiganj','Krishnanagar','Nabadwip','Medinipur','Jalpaiguri','Balurghat'],
+  'Delhi (NCT)':          ['New Delhi','Delhi','Dwarka','Rohini','Pitampura','Janakpuri','Laxmi Nagar','Shahdara','Saket','Vasant Kunj','Greater Kailash','Connaught Place','Karol Bagh','Paharganj','Nehru Place'],
+  'Chandigarh':           ['Chandigarh'],
+  'Puducherry':           ['Puducherry','Karaikal','Mahe','Yanam'],
+  'Ladakh':               ['Leh','Kargil'],
+  'Jammu & Kashmir':      ['Srinagar','Jammu','Anantnag','Baramulla','Sopore','Kathua','Udhampur','Poonch'],
+  'Andaman & Nicobar':    ['Port Blair'],
+  'Dadra & Nagar Haveli': ['Silvassa'],
+  'Daman & Diu':          ['Daman','Diu'],
+  'Lakshadweep':          ['Kavaratti'],
+};
+
+// Build flat list for searching
+const ALL_CITIES_FLAT = Object.entries(INDIA_CITIES).flatMap(([state, cities]) =>
+  cities.map(city => ({ city, state, label: city + ', ' + state }))
+).sort((a,b)=>a.city.localeCompare(b.city));
+
+let _cityHighlightIdx = -1;
+
+function showCityDropdown() {
+  filterCityDropdown(q('c_location')?.value || '');
+}
+
+function hideCityDropdown() {
+  const dd = q('cityDropdown');
+  if (dd) dd.classList.add('hidden');
+  _cityHighlightIdx = -1;
+}
+
+function filterCityDropdown(query) {
+  const dd = q('cityDropdown');
+  if (!dd) return;
+  _cityHighlightIdx = -1;
+
+  const q2 = query.trim().toLowerCase();
+  let results;
+
+  if (!q2) {
+    // Show popular cities when empty
+    const popular = ['Mumbai','Delhi','Bengaluru','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Lucknow','Chandigarh','Bhopal','Patna','Kochi','Visakhapatnam','New Delhi'];
+    results = ALL_CITIES_FLAT.filter(c=>popular.includes(c.city)).slice(0,16);
+    dd.innerHTML = '<div class="city-group-label">Popular Cities</div>' +
+      results.map((c,i)=>cityOptionHtml(c,i)).join('');
+  } else {
+    // Search: starts-with first, then contains
+    const startsWith = ALL_CITIES_FLAT.filter(c=>c.city.toLowerCase().startsWith(q2));
+    const contains   = ALL_CITIES_FLAT.filter(c=>!c.city.toLowerCase().startsWith(q2)&&c.label.toLowerCase().includes(q2));
+    results = [...startsWith, ...contains].slice(0,20);
+
+    if (!results.length) {
+      dd.innerHTML = '<div class="city-no-results">No city found. You can type a custom location.</div>';
+    } else {
+      dd.innerHTML = `<div class="city-group-label">${results.length} result${results.length!==1?'s':''}</div>` +
+        results.map((c,i)=>cityOptionHtml(c,i)).join('');
+    }
+  }
+
+  dd.classList.remove('hidden');
+}
+
+function cityOptionHtml(c, i) {
+  return `<div class="city-option" data-idx="${i}" onmousedown="selectCity('${c.label.replace(/'/g,"\\'")}')">
+    <span>📍</span>
+    <span>${c.city}</span>
+    <span class="city-option-state">${c.state}</span>
+  </div>`;
+}
+
+function selectCity(label) {
+  const input = q('c_location');
+  if (input) input.value = label;
+  hideCityDropdown();
+}
+
+// Keyboard navigation in dropdown
+q('c_location')?.addEventListener('keydown', e => {
+  const dd = q('cityDropdown');
+  if (!dd || dd.classList.contains('hidden')) return;
+  const options = dd.querySelectorAll('.city-option');
+  if (!options.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _cityHighlightIdx = Math.min(_cityHighlightIdx+1, options.length-1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _cityHighlightIdx = Math.max(_cityHighlightIdx-1, 0);
+  } else if (e.key === 'Enter' && _cityHighlightIdx >= 0) {
+    e.preventDefault();
+    options[_cityHighlightIdx]?.dispatchEvent(new MouseEvent('mousedown'));
+    return;
+  } else if (e.key === 'Escape') {
+    hideCityDropdown(); return;
+  } else return;
+
+  options.forEach((o,i)=>o.classList.toggle('highlighted', i===_cityHighlightIdx));
+  options[_cityHighlightIdx]?.scrollIntoView({block:'nearest'});
+});
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 // Show login screen on load (hide main app until authenticated)
 const _loginScreen = q('loginScreen');

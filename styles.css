@@ -1248,3 +1248,37 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
 /* Contact form validation */
 .login-input.field-ok    { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
 .login-input.field-error { border-color: #e11d48; box-shadow: 0 0 0 3px rgba(225,29,72,.1); }
+
+/* ══ Location City Dropdown ══ */
+.location-field-wrap { position: relative; }
+.location-input {
+  width: 100%; padding: .55rem 2rem .55rem .75rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); font-size: .88rem; color: var(--text);
+  transition: border-color .15s;
+}
+.location-input:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,.2); }
+.location-chevron {
+  position: absolute; right: .65rem; top: 50%; transform: translateY(-50%);
+  color: var(--text-3); font-size: .75rem; pointer-events: none;
+}
+.city-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md);
+  max-height: 220px; overflow-y: auto; z-index: 300;
+}
+.city-group-label {
+  font-size: .67rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-3);
+  padding: .45rem .75rem .2rem; background: var(--bg);
+  position: sticky; top: 0;
+}
+.city-option {
+  padding: .45rem .75rem; font-size: .84rem; cursor: pointer;
+  display: flex; align-items: center; gap: .5rem;
+  transition: background .1s;
+}
+.city-option:hover, .city-option.highlighted { background: #eff6ff; color: var(--accent); }
+.city-option-state { font-size: .7rem; color: var(--text-3); margin-left: auto; }
+.city-no-results { padding: .75rem; font-size: .82rem; color: var(--text-3); text-align: center; }
