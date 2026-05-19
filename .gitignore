@@ -3,3 +3,4 @@ node_modules/
 crm.db
 crm.db-shm
 crm.db-wal
+.DS_Store
