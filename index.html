@@ -13,7 +13,7 @@
       <p>CRM modules for IT companies: sales, delivery, support, and renewals.</p>
     </div>
     <div class="top-actions">
-      <span id="userBadge" class="user-badge">Guest</span>
+      <span id="userBadge" class="user-badge">Guest</span><span id="roleBadge" class="role-badge hidden"></span>
       <button id="loginBtn" class="btn-outline">Login</button>
       <button id="logoutBtn" class="btn-danger hidden">Logout</button>
     </div>
@@ -171,7 +171,7 @@
       <h3>Login</h3>
       <input id="loginEmail" type="email" placeholder="Email" required />
       <input id="loginPassword" type="password" placeholder="Password" required />
-      <p class="muted small">Demo credentials: <strong>admin@crm.local</strong> / <strong>admin123</strong></p>
+      <p class="muted small">Default admin: <strong>admin@crm.local</strong> / <strong>admin123</strong><br>Requires API server on port 3002.</p>
       <div class="dialog-actions">
         <button type="button" id="closeLogin" class="btn-outline dark">Cancel</button>
         <button type="submit">Sign In</button>

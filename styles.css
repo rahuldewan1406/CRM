@@ -51,3 +51,6 @@ ul{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}li{border:1px solid
 .edit-form h3 { margin: 0 0 4px; font-size: 1.1rem; }
 .edit-form label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; font-weight: 500; }
 .edit-form input, .edit-form select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: .9rem; }
+
+/* ── Role badge ── */
+.role-badge { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #e8f0fe; color: #1a56db; border: 1px solid #4a80f5; vertical-align: middle; margin-left: 4px; }
