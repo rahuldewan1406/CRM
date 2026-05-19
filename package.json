@@ -1,5 +1,5 @@
 {
-  "name": "crm-mail-backend",
+  "name": "crm-app",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
@@ -7,12 +7,16 @@
     "start": "node server.js",
     "serve": "python3 -m http.server 8000",
     "start:dev": "npm run start & npm run serve",
-    "check": "node startup-check.js"
+    "check": "node startup-check.js",
+    "start:api": "node api-server.js",
+    "start:all": "npm run start & npm run start:api & npm run serve"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14"
   }
 }
