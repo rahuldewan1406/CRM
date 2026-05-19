@@ -1133,10 +1133,27 @@
               <div class="chat-thread-phone" id="chatThreadPhone"></div>
             </div>
             <div class="chat-thread-actions">
+              <button class="chat-icon-btn" onclick="toggleChatSearch()" title="Search messages" id="chatSearchBtn">🔍</button>
+              <button class="chat-icon-btn" onclick="toggleChatAnalytics()" title="Analytics">📊</button>
               <button class="chat-icon-btn" onclick="callContact()" title="Call" id="chatCallBtn">📞</button>
               <button class="chat-icon-btn" onclick="clearThread()" title="Clear chat">🗑</button>
             </div>
           </div>
+          <!-- Search bar (hidden by default) -->
+          <div class="chat-search-bar-inline hidden" id="chatSearchBar">
+            <input id="chatSearchInput" class="chat-search-inline-input" placeholder="🔍 Search messages…"
+              oninput="searchChatMessages(this.value)" />
+            <span id="chatSearchCount" class="chat-search-count"></span>
+            <button class="chat-icon-btn" onclick="toggleChatSearch()">✕</button>
+          </div>
+          <!-- Pinned message area -->
+          <div class="chat-pinned-area hidden" id="chatPinnedArea">
+            <span class="chat-pinned-icon">📌</span>
+            <span class="chat-pinned-text" id="chatPinnedText"></span>
+            <button class="chat-pinned-unpin" onclick="unpinMessage()">✕</button>
+          </div>
+          <!-- Analytics panel -->
+          <div class="chat-analytics-panel hidden" id="chatAnalyticsPanel"></div>
 
           <!-- Messages -->
           <div class="chat-messages" id="chatMessages"></div>
@@ -1146,11 +1163,24 @@
             <span></span><span></span><span></span>
           </div>
 
+          <!-- Reply preview -->
+          <div class="chat-reply-preview hidden" id="chatReplyPreview">
+            <div class="reply-preview-bar"></div>
+            <div class="reply-preview-content">
+              <div class="reply-preview-label">Replying to</div>
+              <div class="reply-preview-text" id="replyPreviewText"></div>
+            </div>
+            <button class="reply-cancel-btn" onclick="cancelReply()">✕</button>
+          </div>
+
           <!-- Compose bar -->
           <div class="chat-compose-bar">
             <div class="chat-compose-attachments">
-              <button class="chat-compose-btn" onclick="insertQuickReply()" title="Quick replies">⚡</button>
-              <button class="chat-compose-btn" onclick="attachNote()" title="Attach note">📎</button>
+              <button class="chat-compose-btn" onclick="toggleEmojiPicker()" title="Emoji" id="emojiBtn">😊</button>
+              <button class="chat-compose-btn" onclick="insertQuickReply()" title="Quick replies / Templates">⚡</button>
+              <button class="chat-compose-btn" onclick="attachNote()" title="Attach note">📝</button>
+              <button class="chat-compose-btn" onclick="openFileAttach()" title="Attach file">📎</button>
+              <input type="file" id="chatFileInput" class="hidden" onchange="handleChatFile(event)" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" />
             </div>
             <textarea
               id="chatInput"
@@ -1165,9 +1195,20 @@
             </button>
           </div>
 
+          <!-- Emoji Picker -->
+          <div class="emoji-picker hidden" id="emojiPicker">
+            <div class="emoji-picker-header">
+              <input id="emojiSearch" class="emoji-search" placeholder="Search emoji…" oninput="filterEmoji(this.value)" />
+            </div>
+            <div id="emojiGrid" class="emoji-grid"></div>
+          </div>
+
           <!-- Quick replies panel -->
           <div class="quick-replies-panel hidden" id="quickRepliesPanel">
-            <div class="quick-replies-title">Quick Replies</div>
+            <div class="quick-replies-header">
+              <div class="quick-replies-title">⚡ Templates & Quick Replies</div>
+              <button class="chat-icon-btn" onclick="q('quickRepliesPanel').classList.add('hidden')">✕</button>
+            </div>
             <div id="quickRepliesList" class="quick-replies-list"></div>
           </div>
 

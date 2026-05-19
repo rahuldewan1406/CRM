@@ -3411,3 +3411,483 @@ function initChat() {
   if (chatState.open) renderChatList();
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+//  CHAT MESSENGER — ENHANCED FEATURES
+// ══════════════════════════════════════════════════════════════════
+
+// ── Emoji Picker ──────────────────────────────────────────────────
+const EMOJI_DATA = {
+  'Smileys': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿'],
+  'Hands': ['👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','👶','🧒','👦','👧','🧑','👱'],
+  'Nature': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐'],
+  'Food': ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶','🫑','🥕','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫓','🥙','🥪','🌮','🌯','🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧆','🥜','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜'],
+  'Travel': ['🚗','🚕','🚙','🚌','🚎','🏎','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍','🛵','🛺','🚲','🛴','🛹','🛼','🚏','🛣','🛤','⛽','🚨','🚥','🚦','🛑','🚧','⚓','🛟','⛵','🚤','🛥','🛳','⛴','🚢','✈️','🛩','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰','🚀','🛸','🌍','🌎','🌏','🧭','🗺','🌋','🏔','⛰','🏕','🏖','🏜','🏝','🏟','🏛','🏗','🏘','🏚','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭'],
+  'Symbols': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉','☸️','✡️','🔯','🕎','☯️','🆗','🆙','🆒','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔠','🔡','🔢','🔣','🔤','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🔱','♻️','✅','🆚','💹','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈹','🈲','🅰️'],
+};
+
+const EMOJI_FLAT = Object.values(EMOJI_DATA).flat();
+
+function toggleEmojiPicker() {
+  const picker = q('emojiPicker');
+  if (!picker) return;
+  const isHidden = picker.classList.contains('hidden');
+  picker.classList.toggle('hidden');
+  if (isHidden) {
+    renderEmojiGrid('');
+    setTimeout(()=>q('emojiSearch')?.focus(), 50);
+  }
+}
+
+function renderEmojiGrid(filter) {
+  const grid = q('emojiGrid');
+  if (!grid) return;
+  const emojis = filter
+    ? EMOJI_FLAT.filter(e=>e.includes(filter)).slice(0,64)
+    : EMOJI_FLAT.slice(0,96);
+  grid.innerHTML = emojis.map(e=>
+    `<button class="emoji-btn" onclick="insertEmoji('${e}')" title="${e}">${e}</button>`
+  ).join('');
+}
+
+function filterEmoji(val) { renderEmojiGrid(val); }
+
+function insertEmoji(emoji) {
+  const input = q('chatInput');
+  if (!input) return;
+  const pos = input.selectionStart;
+  input.value = input.value.slice(0,pos) + emoji + input.value.slice(input.selectionEnd);
+  input.selectionStart = input.selectionEnd = pos + emoji.length;
+  input.focus();
+  q('emojiPicker')?.classList.add('hidden');
+}
+
+// Close emoji picker on outside click
+document.addEventListener('click', e => {
+  const picker = q('emojiPicker');
+  const btn    = q('emojiBtn');
+  if (picker && btn && !picker.contains(e.target) && !btn.contains(e.target))
+    picker.classList.add('hidden');
+});
+
+// ── Message Search ────────────────────────────────────────────────
+let _searchActive = false;
+let _searchMatches = [];
+let _searchIdx = 0;
+
+function toggleChatSearch() {
+  const bar = q('chatSearchBar');
+  if (!bar) return;
+  _searchActive = !bar.classList.contains('hidden');
+  if (!_searchActive) {
+    bar.classList.remove('hidden');
+    setTimeout(()=>q('chatSearchInput')?.focus(), 50);
+  } else {
+    bar.classList.add('hidden');
+    q('chatSearchInput').value = '';
+    searchChatMessages('');
+  }
+}
+
+function searchChatMessages(query) {
+  const messagesEl = q('chatMessages');
+  if (!messagesEl) return;
+  // Remove old highlights
+  messagesEl.querySelectorAll('.chat-msg-highlight').forEach(el=>el.classList.remove('chat-msg-highlight'));
+  _searchMatches = [];
+  if (!query.trim()) { q('chatSearchCount').textContent=''; return; }
+  const thread = chatState.threads[chatState.activePhone];
+  if (!thread?.messages) return;
+  const q2 = query.toLowerCase();
+  _searchMatches = thread.messages.filter(m=>m.text?.toLowerCase().includes(q2)).map(m=>m.id);
+  // Highlight matching bubbles
+  _searchMatches.forEach(id=>{
+    const el = messagesEl.querySelector(`[data-msgid="${id}"]`);
+    if (el) el.classList.add('chat-msg-highlight');
+  });
+  q('chatSearchCount').textContent = _searchMatches.length ? `${_searchMatches.length} found` : 'No results';
+  // Scroll to first match
+  if (_searchMatches.length) {
+    const first = messagesEl.querySelector(`[data-msgid="${_searchMatches[0]}"]`);
+    first?.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+}
+
+// ── Pin Messages ──────────────────────────────────────────────────
+function pinMessage(msgId) {
+  const thread = chatState.threads[chatState.activePhone];
+  if (!thread) return;
+  const msg = thread.messages.find(m=>m.id===msgId);
+  if (!msg) return;
+  thread.pinnedMsgId = msgId;
+  saveChatState();
+  renderPinnedArea();
+  pushNotif('Message pinned', msg.text.slice(0,60), '📌','info');
+}
+
+function unpinMessage() {
+  const thread = chatState.threads[chatState.activePhone];
+  if (!thread) return;
+  delete thread.pinnedMsgId;
+  saveChatState();
+  renderPinnedArea();
+}
+
+function renderPinnedArea() {
+  const area = q('chatPinnedArea');
+  const text = q('chatPinnedText');
+  if (!area) return;
+  const thread = chatState.threads[chatState.activePhone];
+  const pinned = thread?.messages?.find(m=>m.id===thread?.pinnedMsgId);
+  if (pinned) {
+    text.textContent = pinned.text.slice(0,80)+(pinned.text.length>80?'…':'');
+    area.classList.remove('hidden');
+  } else {
+    area.classList.add('hidden');
+  }
+}
+
+// ── Star Messages ─────────────────────────────────────────────────
+function toggleStarMessage(msgId) {
+  const thread = chatState.threads[chatState.activePhone];
+  if (!thread) return;
+  if (!thread.starred) thread.starred = [];
+  const idx = thread.starred.indexOf(msgId);
+  if (idx === -1) { thread.starred.push(msgId); }
+  else            { thread.starred.splice(idx,1); }
+  saveChatState();
+  renderMessages();
+}
+
+function showStarredMessages() {
+  const thread = chatState.threads[chatState.activePhone];
+  if (!thread?.starred?.length) { alert('No starred messages in this conversation.'); return; }
+  const panel = document.createElement('div');
+  panel.className = 'chat-starred-panel';
+  panel.innerHTML = `
+    <div class="chat-starred-header">
+      <span>⭐ Starred Messages</span>
+      <button class="chat-icon-btn" onclick="this.closest('.chat-starred-panel').remove()" style="margin-left:auto">✕</button>
+    </div>
+    <div class="chat-starred-list">
+      ${thread.messages.filter(m=>thread.starred.includes(m.id)).map(m=>`
+        <div class="chat-starred-item" onclick="scrollToMessage('${m.id}');this.closest('.chat-starred-panel').remove()">
+          <div>${escapeHtml(m.text.slice(0,100))}${m.text.length>100?'…':''}</div>
+          <div class="chat-starred-item-meta">${m.direction==='sent'?'You':chatState.activeContact?.name||'Contact'} · ${formatChatTime(m.time)}</div>
+        </div>`).join('')}
+    </div>`;
+  q('chatThreadWrap').appendChild(panel);
+}
+
+function scrollToMessage(msgId) {
+  const el = q('chatMessages')?.querySelector(`[data-msgid="${msgId}"]`);
+  if (el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.animation='chatMsgFlash .6s ease'; }
+}
+
+// ── Reply to Message ──────────────────────────────────────────────
+let _replyingToMsgId = null;
+
+function replyToMessage(msgId) {
+  const thread = chatState.threads[chatState.activePhone];
+  const msg = thread?.messages?.find(m=>m.id===msgId);
+  if (!msg) return;
+  _replyingToMsgId = msgId;
+  const preview = q('chatReplyPreview');
+  const previewText = q('replyPreviewText');
+  if (preview && previewText) {
+    previewText.textContent = msg.text.slice(0,80)+(msg.text.length>80?'…':'');
+    preview.classList.remove('hidden');
+  }
+  q('chatInput')?.focus();
+}
+
+function cancelReply() {
+  _replyingToMsgId = null;
+  q('chatReplyPreview')?.classList.add('hidden');
+}
+
+// ── File Attachment ───────────────────────────────────────────────
+function openFileAttach() { q('chatFileInput')?.click(); }
+
+function handleChatFile(event) {
+  const file = event.target.files?.[0];
+  if (!file || !chatState.activePhone) return;
+  const MAX = 5*1024*1024;
+  if (file.size > MAX) { pushNotif('File too large','Maximum file size is 5MB.','⚠️','warning'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const msg = {
+      id:        crypto.randomUUID(),
+      text:      file.name,
+      fileData:  e.target.result,
+      fileSize:  file.size,
+      fileType:  file.type,
+      direction: 'sent',
+      type:      'file',
+      time:      new Date().toISOString(),
+      sender:    state.session?.name || 'You',
+    };
+    if (!chatState.threads[chatState.activePhone]) chatState.threads[chatState.activePhone] = { messages:[] };
+    chatState.threads[chatState.activePhone].messages.push(msg);
+    saveChatState();
+    renderMessages();
+    renderChatList();
+    state.activities.unshift({ id:crypto.randomUUID(), created_at:msg.time, type:'Chat', note:`[File to ${chatState.activeContact?.name||''}]: ${file.name}`, contactId:chatState.activeContact?.id||null });
+    persistLocal();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+// ── Sound Notifications ───────────────────────────────────────────
+let _chatSoundEnabled = localStorage.getItem('crm_chat_sound') !== 'false';
+
+function toggleChatSound() {
+  _chatSoundEnabled = !_chatSoundEnabled;
+  localStorage.setItem('crm_chat_sound', _chatSoundEnabled);
+  pushNotif(`Sound ${_chatSoundEnabled?'on':'off'}`, `Chat notification sounds ${_chatSoundEnabled?'enabled':'muted'}.`, _chatSoundEnabled?'🔔':'🔕','info');
+}
+
+function playChatSound() {
+  if (!_chatSoundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+// ── Chat Analytics ────────────────────────────────────────────────
+function toggleChatAnalytics() {
+  const panel = q('chatAnalyticsPanel');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    renderChatAnalytics();
+    panel.classList.remove('hidden');
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function renderChatAnalytics() {
+  const panel = q('chatAnalyticsPanel');
+  if (!panel) return;
+  const thread = chatState.threads[chatState.activePhone] || { messages:[] };
+  const msgs   = thread.messages.filter(m=>m.type!=='note');
+  const sent   = msgs.filter(m=>m.direction==='sent');
+  const recv   = msgs.filter(m=>m.direction==='received');
+  const files  = msgs.filter(m=>m.type==='file');
+  const starred = (thread.starred||[]).length;
+
+  // Avg response time (sent after received)
+  let totalResp = 0, respCount = 0;
+  msgs.forEach((m,i) => {
+    if (m.direction==='sent' && i>0 && msgs[i-1].direction==='received') {
+      totalResp += new Date(m.time) - new Date(msgs[i-1].time);
+      respCount++;
+    }
+  });
+  const avgResp = respCount ? Math.round(totalResp/respCount/60000) : 0;
+
+  panel.innerHTML = `
+    <div class="chat-stat"><div class="chat-stat-val">${sent.length}</div><div class="chat-stat-label">Sent</div></div>
+    <div class="chat-stat"><div class="chat-stat-val">${recv.length}</div><div class="chat-stat-label">Received</div></div>
+    <div class="chat-stat"><div class="chat-stat-val">${files.length}</div><div class="chat-stat-label">Files</div></div>
+    <div class="chat-stat"><div class="chat-stat-val">${starred}</div><div class="chat-stat-label">Starred</div></div>
+    <div class="chat-stat" style="grid-column:span 2"><div class="chat-stat-val">${avgResp?avgResp+'m':'—'}</div><div class="chat-stat-label">Avg Response</div></div>
+    <div class="chat-stat" style="grid-column:span 2"><div class="chat-stat-val">${msgs.length}</div><div class="chat-stat-label">Total Messages</div></div>`;
+}
+
+// ── Group by project / tag ────────────────────────────────────────
+function groupChatsByProject() {
+  // Show contacts grouped by their linked project
+  const grouped = {};
+  state.contacts.forEach(c => {
+    const proj = state.projects.find(p=>p.contactId===c.id);
+    const group = proj?.name || 'No Project';
+    if (!grouped[group]) grouped[group] = [];
+    grouped[group].push(c);
+  });
+  return grouped;
+}
+
+// ── Override renderMessages to include new features ───────────────
+const _origRenderMessages = renderMessages;
+window.renderMessages = function() {
+  const thread  = chatState.threads[chatState.activePhone] || { messages:[] };
+  const msgsEl  = q('chatMessages');
+  if (!msgsEl) return;
+
+  if (!thread.messages.length) {
+    msgsEl.innerHTML = `
+      <div class="chat-system-msg" style="margin-top:auto">
+        This is the beginning of your conversation with <strong>${chatState.activeContact?.name||''}</strong>.
+      </div>
+      <div class="chat-system-msg" style="font-size:.7rem;color:var(--text-3)">
+        📱 ${chatState.activeContact?.phone||''}
+      </div>`;
+    renderPinnedArea();
+    return;
+  }
+
+  const starred = thread.starred || [];
+  let html = '';
+  let lastDate='', lastDir='', groupOpen=false;
+
+  thread.messages.forEach((msg) => {
+    const msgDate = new Date(msg.time).toDateString();
+    const today   = new Date().toDateString();
+    const yest    = new Date(Date.now()-86400000).toDateString();
+
+    if (msgDate !== lastDate) {
+      if (groupOpen) { html+='</div>'; groupOpen=false; }
+      const label = msgDate===today?'Today':msgDate===yest?'Yesterday':new Date(msg.time).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+      html+=`<div class="chat-date-divider"><span>${label}</span></div>`;
+      lastDate=msgDate; lastDir='';
+    }
+
+    if (msg.type==='note') {
+      if (groupOpen){html+='</div>';groupOpen=false;lastDir='';}
+      html+=`<div class="chat-msg-note"><div class="chat-msg-note-label">📌 Internal Note</div>${escapeHtml(msg.text)}<div style="font-size:.65rem;opacity:.6;margin-top:4px;text-align:right">${formatChatTime(msg.time)}</div></div>`;
+      return;
+    }
+
+    if (msg.direction!==lastDir) {
+      if (groupOpen) html+='</div>';
+      html+=`<div class="chat-msg-group ${msg.direction}">`;
+      groupOpen=true; lastDir=msg.direction;
+    }
+
+    const isStarred = starred.includes(msg.id);
+    const tick = msg.direction==='sent'?`<span class="chat-bubble-tick read">✓✓</span>`:'';
+    const starBtn   = `<button class="msg-action-btn" onclick="toggleStarMessage('${msg.id}')" title="${isStarred?'Unstar':'Star'}">${isStarred?'⭐':'☆'}</button>`;
+    const pinBtn    = `<button class="msg-action-btn" onclick="pinMessage('${msg.id}')" title="Pin">📌</button>`;
+    const replyBtn  = `<button class="msg-action-btn" onclick="replyToMessage('${msg.id}')" title="Reply">↩</button>`;
+    const quoteHtml = msg.replyToText ? `<div class="chat-quoted">${escapeHtml(msg.replyToText.slice(0,80))}</div>` : '';
+
+    if (msg.type==='file') {
+      const isImg = msg.fileType?.startsWith('image/');
+      html+=`<div class="chat-bubble-wrap" data-msgid="${msg.id}">
+        <div class="chat-msg-actions">${replyBtn}${starBtn}${pinBtn}</div>
+        <div class="chat-bubble${isStarred?' starred':''}">
+          ${quoteHtml}
+          ${isImg
+            ? `<img src="${msg.fileData}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${msg.fileData}')" />`
+            : `<div class="chat-file-bubble" onclick="downloadChatFile('${msg.id}')">
+                <span class="chat-file-icon">${fileIcon(msg.text)}</span>
+                <div class="chat-file-info">
+                  <div class="chat-file-name">${escapeHtml(msg.text)}</div>
+                  <div class="chat-file-size">${fmtSize(msg.fileSize||0)}</div>
+                </div>
+                <span>⬇</span>
+              </div>`}
+          <div class="chat-bubble-meta">
+            <span class="chat-bubble-time">${formatChatTime(msg.time)}</span>
+            ${tick}
+          </div>
+          ${isStarred?'<span class="star-indicator">⭐</span>':''}
+        </div>
+      </div>`;
+    } else {
+      html+=`<div class="chat-bubble-wrap" data-msgid="${msg.id}">
+        <div class="chat-msg-actions">${replyBtn}${starBtn}${pinBtn}</div>
+        <div class="chat-bubble${isStarred?' starred':''}">
+          ${quoteHtml}
+          ${escapeHtml(msg.text)}
+          <div class="chat-bubble-meta">
+            <span class="chat-bubble-time">${formatChatTime(msg.time)}</span>
+            ${tick}
+          </div>
+          ${isStarred?'<span class="star-indicator">⭐</span>':''}
+        </div>
+      </div>`;
+    }
+  });
+
+  if (groupOpen) html+='</div>';
+  msgsEl.innerHTML = html;
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  renderPinnedArea();
+};
+
+// ── Override sendChatMessage to include reply + sound ─────────────
+const _origSendChat = sendChatMessage;
+window.sendChatMessage = function() {
+  const input = q('chatInput');
+  const text  = input?.value.trim();
+  if (!text || !chatState.activePhone) return;
+
+  // Get reply context
+  let replyToText = null;
+  if (_replyingToMsgId) {
+    const thread = chatState.threads[chatState.activePhone];
+    const replied = thread?.messages?.find(m=>m.id===_replyingToMsgId);
+    replyToText = replied?.text || null;
+  }
+
+  const msg = {
+    id:          crypto.randomUUID(),
+    text,
+    replyToText,
+    direction:   'sent',
+    type:        'text',
+    time:        new Date().toISOString(),
+    sender:      state.session?.name || 'You',
+  };
+
+  if (!chatState.threads[chatState.activePhone]) chatState.threads[chatState.activePhone] = { messages:[] };
+  chatState.threads[chatState.activePhone].messages.push(msg);
+  saveChatState();
+  cancelReply();
+  input.value=''; input.style.height='auto';
+  renderMessages(); renderChatList();
+
+  state.activities.unshift({ id:crypto.randomUUID(), created_at:msg.time, type:'Chat', note:`[Chat to ${chatState.activeContact?.name||''}]: ${text.slice(0,100)}`, contactId:chatState.activeContact?.id||null });
+  persistLocal();
+};
+
+// ── Override simulateReceive to include sound ─────────────────────
+const _origSimReceive = simulateReceive;
+window.simulateReceive = function(text) {
+  if (!chatState.activePhone) return;
+  const msg = { id:crypto.randomUUID(), text, direction:'received', type:'text', time:new Date().toISOString(), sender:chatState.activeContact?.name||'Contact' };
+  chatState.threads[chatState.activePhone].messages.push(msg);
+  saveChatState();
+  renderMessages(); renderChatList(); updateChatBadge();
+  playChatSound();
+  pushNotif(`Message from ${msg.sender}`, text.slice(0,60), '💬','info');
+};
+
+// ── Download chat file ────────────────────────────────────────────
+function downloadChatFile(msgId) {
+  const thread = chatState.threads[chatState.activePhone];
+  const msg = thread?.messages?.find(m=>m.id===msgId);
+  if (!msg?.fileData) return;
+  const a = document.createElement('a'); a.href=msg.fileData; a.download=msg.text; a.click();
+}
+
+// ── Override openChatThread to init new features ──────────────────
+const _origOpenThread = openChatThread;
+window.openChatThread = function(phone, contactId) {
+  _origOpenThread(phone, contactId);
+  renderPinnedArea();
+  cancelReply();
+  q('chatAnalyticsPanel')?.classList.add('hidden');
+  q('chatSearchBar')?.classList.add('hidden');
+  if (q('chatSearchInput')) q('chatSearchInput').value='';
+};
+
+// ── Flash animation ───────────────────────────────────────────────
+const _flashStyle = document.createElement('style');
+_flashStyle.textContent = `@keyframes chatMsgFlash { 0%,100%{background:transparent} 50%{background:#fef08a} }`;
+document.head.appendChild(_flashStyle);
+
