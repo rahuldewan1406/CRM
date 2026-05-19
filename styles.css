@@ -348,3 +348,50 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
   .kpi-row { grid-template-columns: repeat(2,1fr); }
   .kanban-board { grid-template-columns: repeat(2,1fr); }
 }
+
+/* ══ Analytics Dashboard ══ */
+.analytics-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.analytics-row-3 { grid-template-columns: repeat(3, 1fr); }
+.analytics-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem; box-shadow: var(--shadow); }
+.analytics-card.analytics-wide { grid-column: span 1; }
+.analytics-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: .9rem; }
+.analytics-header h3 { font-size: .9rem; font-weight: 700; color: var(--text); }
+.analytics-sub { font-size: .72rem; color: var(--text-3); font-weight: 500; }
+
+/* Funnel chart */
+.funnel-chart { display: flex; flex-direction: column; gap: .45rem; }
+.funnel-row { display: flex; flex-direction: column; gap: 3px; }
+.funnel-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-2); }
+.funnel-bar-outer { background: var(--bg); border-radius: 999px; height: 10px; overflow: hidden; }
+.funnel-bar-inner { height: 100%; border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+.funnel-pct { font-size: .68rem; color: var(--text-3); text-align: right; }
+
+/* Workload chart */
+.workload-chart { display: flex; flex-direction: column; gap: .55rem; }
+.workload-row { display: grid; grid-template-columns: 80px 1fr 32px; gap: .5rem; align-items: center; font-size: .78rem; }
+.workload-bar-wrap { background: var(--bg); border-radius: 999px; height: 8px; overflow: hidden; }
+.workload-bar { height: 100%; border-radius: 999px; }
+
+/* Top accounts */
+.top-accounts { display: flex; flex-direction: column; gap: .45rem; }
+.account-row { display: flex; align-items: center; gap: .6rem; padding: .4rem .5rem; background: var(--bg); border-radius: 7px; }
+.account-row-name { flex: 1; font-size: .82rem; font-weight: 500; }
+.account-row-renewal { font-size: .7rem; color: var(--text-3); font-family: var(--mono); }
+.renewal-soon { color: var(--rose); font-weight: 600; }
+
+/* Mail project button */
+.btn-mail-status { background: none; border: 1px solid var(--border-strong); color: var(--text-2); font-size: .72rem; padding: 3px 8px; border-radius: 5px; font-weight: 500; transition: all .15s; }
+.btn-mail-status:hover { background: #eff6ff; border-color: #93c5fd; color: var(--accent); }
+
+/* Project report preview */
+.project-report-preview { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: .9rem 1.1rem; font-size: .82rem; max-height: 280px; overflow-y: auto; line-height: 1.7; }
+.report-section-title { font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin: .6rem 0 .3rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+.report-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem .75rem; margin-bottom: .5rem; }
+.report-meta-item { font-size: .8rem; }
+.report-meta-key { color: var(--text-3); }
+.report-task-row { display: flex; gap: .5rem; align-items: center; padding: .2rem 0; }
+.report-milestone-row { display: flex; gap: .5rem; align-items: center; padding: .2rem 0; }
+
+@media(max-width:900px) {
+  .analytics-row, .analytics-row-3 { grid-template-columns: 1fr; }
+}

@@ -330,7 +330,7 @@ function renderDashboard() {
   q('renewalDueCount').textContent = state.accounts.filter(a=>a.renewalDate&&new Date(a.renewalDate)>=today&&new Date(a.renewalDate)<=in30).length;
   q('dashDate').textContent = today.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Pipeline chart
+  // ── Pipeline bar chart ─────────────────────────────────────────────────────
   const stages = ['New','Qualified','Proposal','Won','Lost'];
   const colors  = ['#94a3b8','#7c3aed','#d97706','#16a34a','#e11d48'];
   const totals  = stages.map(s=>state.leads.filter(l=>l.stage===s).reduce((a,l)=>a+(l.value||0),0));
@@ -346,31 +346,77 @@ function renderDashboard() {
   q('weightedForecast').textContent = fmtMoney(wf);
   q('weightedForecast2').textContent = fmtMoney(wf);
 
-  // Donut
+  // ── Ticket donut ───────────────────────────────────────────────────────────
   const open=state.tickets.filter(t=>t.status==='Open').length, prog=state.tickets.filter(t=>t.status==='In Progress').length, res=state.tickets.filter(t=>t.status==='Resolved').length;
   const tot=Math.max(open+prog+res,1);
   const donutData=[{l:'Open',v:open,c:'#d97706'},{l:'In Progress',v:prog,c:'#2563eb'},{l:'Resolved',v:res,c:'#16a34a'}];
-  let offset=0; const R=45, CX=60, CY=60, circ=2*Math.PI*R;
+  let offset=0; const R=45,CX=60,CY=60,circ=2*Math.PI*R;
   const paths=donutData.map(({v,c})=>{const pct=v/tot,len=pct*circ,path=`<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${c}" stroke-width="18" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${CX} ${CY})" />`;offset+=len;return path;}).join('');
   q('donutSvg').innerHTML = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#f1f5f9" stroke-width="18"/>${paths}<text x="${CX}" y="${CY+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">${tot}</text>`;
   q('donutLegend').innerHTML = donutData.map(({l,v,c})=>`<div class="legend-item"><div class="legend-dot" style="background:${c}"></div>${l}: <strong>${v}</strong></div>`).join('');
 
-  // Activity feed
-  const acts = [...state.activities].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,6);
-  const icons = {Call:'📞',Meeting:'🤝',Demo:'💻','Follow-up':'🔁',Email:'📧',Note:'📝'};
-  q('activityFeed').innerHTML = acts.length
-    ? acts.map(a=>`<li><span class="activity-type-icon">${icons[a.type]||'📋'}</span><span class="activity-text"><strong>${a.type}</strong> — ${a.note.slice(0,60)}${a.note.length>60?'…':''}</span><span class="activity-time">${timeAgo(a.created_at||new Date().toISOString())}</span></li>`).join('')
-    : '<li style="color:var(--text-3);font-size:.82rem;padding:.4rem">No activities yet. Log one in Projects.</li>';
+  // ── Conversion funnel ──────────────────────────────────────────────────────
+  const funnelStages = ['New','Qualified','Proposal','Won'];
+  const funnelColors = ['#94a3b8','#7c3aed','#d97706','#16a34a'];
+  const funnelCounts = funnelStages.map(s=>state.leads.filter(l=>l.stage===s).length);
+  const funnelMax = Math.max(funnelCounts[0], 1);
+  q('conversionFunnel').innerHTML = funnelStages.map((s,i)=>{
+    const pct = ((funnelCounts[i]/funnelMax)*100).toFixed(0);
+    const conv = i>0&&funnelCounts[i-1]>0 ? ((funnelCounts[i]/funnelCounts[i-1])*100).toFixed(0)+'%' : '—';
+    return `<div class="funnel-row">
+      <div class="funnel-label"><span>${s}</span><span style="font-family:var(--mono);">${funnelCounts[i]} leads</span></div>
+      <div class="funnel-bar-outer"><div class="funnel-bar-inner" style="width:${pct}%;background:${funnelColors[i]}"></div></div>
+      ${i>0?'<div class="funnel-pct">↑ '+conv+' conv.</div>':'<div class="funnel-pct">baseline</div>'}
+    </div>`;
+  }).join('') || '<p style="color:var(--text-3);font-size:.82rem">No leads yet.</p>';
 
-  // Dash projects
-  q('dashProjects').innerHTML = state.projects.slice(0,5).map(p=>`
+  // ── Task workload ──────────────────────────────────────────────────────────
+  const wlStatuses = [['To Do','#94a3b8'],['In Progress','#2563eb'],['Done','#16a34a'],['Blocked','#e11d48']];
+  const wlCounts = wlStatuses.map(([s])=>state.tasks.filter(t=>t.status===s).length);
+  const wlMax = Math.max(...wlCounts, 1);
+  q('workloadChart').innerHTML = wlStatuses.map(([s,c],i)=>`
+    <div class="workload-row">
+      <span style="font-size:.75rem;color:var(--text-2)">${s}</span>
+      <div class="workload-bar-wrap"><div class="workload-bar" style="width:${(wlCounts[i]/wlMax*100).toFixed(1)}%;background:${c}"></div></div>
+      <span style="font-family:var(--mono);font-size:.75rem;text-align:right">${wlCounts[i]}</span>
+    </div>`).join('') + `<div style="margin-top:.75rem;padding-top:.6rem;border-top:1px solid var(--border);font-size:.78rem;color:var(--text-2)">
+      Total tasks: <strong>${state.tasks.length}</strong> · Done: <strong style="color:var(--green)">${wlCounts[2]}</strong>
+    </div>`;
+
+  // ── Top accounts ───────────────────────────────────────────────────────────
+  const now = Date.now();
+  const accs = [...state.accounts].sort((a,b)=>{
+    const tierVal = {Enterprise:3,'Mid-Market':2,SMB:1};
+    return (tierVal[b.tier]||0)-(tierVal[a.tier]||0);
+  }).slice(0,6);
+  q('topAccounts').innerHTML = accs.map(a=>{
+    const daysLeft = a.renewalDate ? Math.ceil((new Date(a.renewalDate)-now)/86400000) : null;
+    const renewalLabel = daysLeft===null ? '—' : daysLeft<=0 ? 'Overdue' : daysLeft<=30 ? `${daysLeft}d left` : fmtDate(a.renewalDate);
+    const isSoon = daysLeft!==null && daysLeft<=30;
+    return `<div class="account-row">
+      <div class="account-row-name">${a.name}</div>
+      <span class="${badgeClass(a.tier||'SMB')}">${a.tier}</span>
+      <span class="account-row-renewal ${isSoon?'renewal-soon':''}">${renewalLabel}</span>
+    </div>`;
+  }).join('') || '<p style="color:var(--text-3);font-size:.82rem;padding:.4rem">No accounts yet.</p>';
+
+  // ── Projects at a glance ───────────────────────────────────────────────────
+  q('dashProjects').innerHTML = state.projects.slice(0,6).map(p=>`
     <div class="dash-proj-row">
       <div class="dash-proj-name">${p.name}</div>
       <span class="${badgeClass(p.status)}" style="font-size:.65rem">${p.status}</span>
       ${pBar(p.progress)}
       <span style="font-family:var(--mono);font-size:.72rem;color:var(--text-3)">${p.progress||0}%</span>
     </div>`).join('') || '<p style="color:var(--text-3);font-size:.82rem;padding:.5rem">No projects yet.</p>';
+
+  // ── Activity feed ──────────────────────────────────────────────────────────
+  const acts = [...state.activities].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,8);
+  const icons = {Call:'📞',Meeting:'🤝',Demo:'💻','Follow-up':'🔁',Email:'📧',Note:'📝'};
+  q('activityFeed').innerHTML = acts.length
+    ? acts.map(a=>`<li><span class="activity-type-icon">${icons[a.type]||'📋'}</span><span class="activity-text"><strong>${a.type}</strong> — ${a.note.slice(0,70)}${a.note.length>70?'…':''}</span><span class="activity-time">${timeAgo(a.created_at||new Date().toISOString())}</span></li>`).join('')
+    : '<li style="color:var(--text-3);font-size:.82rem;padding:.4rem">No activities yet.</li>';
 }
+
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
 function filterContacts() {
@@ -489,7 +535,7 @@ function renderProjectBoard() {
           <div class="project-card-progress-label"><span>Progress</span><span>${p.progress||0}%</span></div>
           ${pBar(p.progress)}
         </div>
-        <div class="project-card-actions">${actBtns('projects',p.id)}</div>
+        <div class="project-card-actions">${actBtns('projects',p.id)}<button class="btn-mail-status" onclick="openProjectMailModal('${p.id}')">📧 Mail Status</button></div>
       </div>`).join('') || '<div style="color:var(--text-3);font-size:.75rem;padding:.3rem">None</div>';
   });
 }
@@ -502,7 +548,7 @@ function renderProjectList() {
       <td>${p.manager}</td>
       <td class="td-progress">${pBar(p.progress)} <span style="font-size:.72rem;color:var(--text-3)">${p.progress||0}%</span></td>
       <td style="font-family:var(--mono);font-size:.78rem">${fmtDate(p.dueDate)}</td>
-      <td>${actBtns('projects',p.id)}</td>
+      <td style="display:flex;gap:.3rem;align-items:center">${actBtns('projects',p.id)}<button class="btn-mail-status" onclick="openProjectMailModal('${p.id}')">📧</button></td>
     </tr>`).join('') || `<tr><td colspan="6" style="color:var(--text-3);font-size:.82rem;padding:1rem;text-align:center">No projects yet. Click "+ New Project" to start.</td></tr>`;
 }
 
@@ -628,6 +674,123 @@ function renderAll() {
   renderTickets();
   syncContactDropdowns();
   syncProjectDropdowns();
+}
+
+
+// ── Mail Project Status ───────────────────────────────────────────────────────
+let _mailProjectId = null;
+
+function openProjectMailModal(projectId) {
+  const p = state.projects.find(x=>x.id===projectId);
+  if (!p) return;
+  _mailProjectId = projectId;
+
+  const tasks      = state.tasks.filter(t=>t.projectId===projectId);
+  const milestones = state.milestones.filter(m=>m.projectId===projectId);
+  const doneTasks  = tasks.filter(t=>t.status==='Done').length;
+  const contact    = state.contacts.find(c=>c.id===p.contactId);
+
+  // Pre-fill subject
+  q('mailProjectSubject').value = `Project Status Update: ${p.name} — ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}`;
+
+  // Pre-fill recipients from linked contact
+  q('mailProjectTo').value = contact?.email || '';
+
+  // Build preview
+  const taskRows = tasks.map(t=>`
+    <div class="report-task-row">
+      <span>${t.status==='Done'?'✅':t.status==='Blocked'?'🚫':t.status==='In Progress'?'🔵':'⚪'}</span>
+      <span>${t.title}</span>
+      ${t.assignee?'<span style="color:var(--text-3);font-size:.75rem">→ '+t.assignee+'</span>':''}
+      ${t.dueDate?'<span style="color:var(--text-3);font-size:.75rem">📅 '+fmtDate(t.dueDate)+'</span>':''}
+    </div>`).join('') || '<div style="color:var(--text-3)">No tasks.</div>';
+
+  const msRows = milestones.map(m=>`
+    <div class="report-milestone-row">
+      <span>${m.status==='Achieved'?'✅':m.status==='Missed'?'❌':'🎯'}</span>
+      <span>${m.name}</span>
+      <span style="color:var(--text-3);font-size:.75rem">${fmtDate(m.date)}</span>
+      <span class="${badgeClass(m.status==='Achieved'?'Won':m.status==='Missed'?'Lost':'New')}">${m.status}</span>
+    </div>`).join('') || '<div style="color:var(--text-3)">No milestones.</div>';
+
+  q('mailProjectPreview').innerHTML = `
+    <div style="font-weight:700;font-size:.95rem;margin-bottom:.5rem">📁 ${p.name}</div>
+    <div class="report-meta-grid">
+      <div class="report-meta-item"><span class="report-meta-key">Status: </span><span class="${badgeClass(p.status)}">${p.status}</span></div>
+      <div class="report-meta-item"><span class="report-meta-key">Priority: </span><span class="${badgeClass(p.priority||'Medium')}">${p.priority||'Medium'}</span></div>
+      <div class="report-meta-item"><span class="report-meta-key">Manager: </span>${p.manager}</div>
+      <div class="report-meta-item"><span class="report-meta-key">Due: </span>${fmtDate(p.dueDate)}</div>
+      <div class="report-meta-item"><span class="report-meta-key">Budget: </span>₹${fmtMoney(p.budget)}</div>
+      <div class="report-meta-item"><span class="report-meta-key">Progress: </span><strong>${p.progress||0}%</strong></div>
+    </div>
+    ${p.description?'<div style="font-size:.8rem;color:var(--text-2);margin-bottom:.5rem">'+p.description+'</div>':''}
+    <div class="report-section-title">Tasks (${doneTasks}/${tasks.length} done)</div>
+    ${taskRows}
+    <div class="report-section-title">Milestones</div>
+    ${msRows}`;
+
+  openModal('mailProjectModal');
+}
+
+async function sendProjectStatus() {
+  const p = state.projects.find(x=>x.id===_mailProjectId);
+  if (!p) return;
+
+  const recipients = q('mailProjectTo').value.split(',').map(v=>v.trim()).filter(Boolean);
+  const subject    = q('mailProjectSubject').value.trim();
+  const notes      = q('mailProjectNotes').value.trim();
+  const banner     = q('mailProjectStatus');
+
+  if (!recipients.length) { showBanner(banner,'Enter at least one recipient.','warning'); return; }
+  const bad = recipients.filter(r=>!isEmail(r));
+  if (bad.length) { showBanner(banner,'Invalid address: '+bad.join(', '),'error'); return; }
+  if (!subject) { showBanner(banner,'Subject is required.','error'); return; }
+
+  const tasks      = state.tasks.filter(t=>t.projectId===_mailProjectId);
+  const milestones = state.milestones.filter(m=>m.projectId===_mailProjectId);
+  const doneTasks  = tasks.filter(t=>t.status==='Done').length;
+
+  const taskLines = tasks.map(t=>`  [${t.status==='Done'?'✓':' '}] ${t.title}${t.assignee?' → '+t.assignee:''}${t.dueDate?' (due: '+fmtDate(t.dueDate)+')':''}`).join('\n') || '  No tasks recorded.';
+  const msLines   = milestones.map(m=>`  [${m.status}] ${m.name} — ${fmtDate(m.date)}`).join('\n') || '  No milestones recorded.';
+
+  const body = `PROJECT STATUS REPORT
+Generated: ${new Date().toLocaleString('en-IN')}
+═══════════════════════════════════════
+
+PROJECT: ${p.name}
+Status:   ${p.status}
+Priority: ${p.priority||'Medium'}
+Manager:  ${p.manager}
+Due Date: ${fmtDate(p.dueDate)}
+Budget:   ₹${fmtMoney(p.budget)}
+Progress: ${p.progress||0}%
+${p.description?'\nDescription:\n'+p.description:''}
+
+TASKS (${doneTasks}/${tasks.length} completed)
+───────────────────────────────────────
+${taskLines}
+
+MILESTONES
+───────────────────────────────────────
+${msLines}
+
+${notes?'ADDITIONAL NOTES\n───────────────────────────────────────\n'+notes+'\n\n':''}─────────────────────────────────────────
+This report was generated automatically by OrgCRM.
+`;
+
+  showBanner(banner,'Sending…','info');
+  try {
+    const r = await fetch(`${SMTP_API}/api/send-email`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recipients,subject,body})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message);
+    showBanner(banner,`✓ Report sent to ${recipients.length} recipient(s).`,'info');
+    q('mailProjectNotes').value = '';
+    setTimeout(()=>closeModal('mailProjectModal'), 2000);
+  } catch(err) {
+    const ml = `mailto:${encodeURIComponent(recipients[0])}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.slice(0,1800))}`;
+    banner.innerHTML = `SMTP failed. <a href="${ml}">Open email client</a> as fallback.`;
+    banner.className='status-banner error'; banner.classList.remove('hidden');
+  }
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

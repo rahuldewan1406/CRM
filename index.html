@@ -54,71 +54,55 @@
 
       <!-- KPI Row -->
       <div class="kpi-row">
-        <div class="kpi-card kpi-blue">
-          <div class="kpi-icon">👥</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="contactCount">0</div>
-            <div class="kpi-label">Total Contacts</div>
-          </div>
-        </div>
-        <div class="kpi-card kpi-violet">
-          <div class="kpi-icon">🔥</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="leadCount">0</div>
-            <div class="kpi-label">Active Leads</div>
-          </div>
-        </div>
-        <div class="kpi-card kpi-green">
-          <div class="kpi-icon">💰</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="opportunityCount">0</div>
-            <div class="kpi-label">Opportunities</div>
-          </div>
-        </div>
-        <div class="kpi-card kpi-amber">
-          <div class="kpi-icon">🎫</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="ticketOpenCount">0</div>
-            <div class="kpi-label">Open Tickets</div>
-          </div>
-        </div>
-        <div class="kpi-card kpi-teal">
-          <div class="kpi-icon">📁</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="projectActiveCount">0</div>
-            <div class="kpi-label">Active Projects</div>
-          </div>
-        </div>
-        <div class="kpi-card kpi-rose">
-          <div class="kpi-icon">📅</div>
-          <div class="kpi-body">
-            <div class="kpi-val" id="renewalDueCount">0</div>
-            <div class="kpi-label">Renewals (30d)</div>
-          </div>
-        </div>
+        <div class="kpi-card kpi-blue"><div class="kpi-icon">👥</div><div class="kpi-body"><div class="kpi-val" id="contactCount">0</div><div class="kpi-label">Total Contacts</div></div></div>
+        <div class="kpi-card kpi-violet"><div class="kpi-icon">🔥</div><div class="kpi-body"><div class="kpi-val" id="leadCount">0</div><div class="kpi-label">Active Leads</div></div></div>
+        <div class="kpi-card kpi-green"><div class="kpi-icon">💰</div><div class="kpi-body"><div class="kpi-val" id="opportunityCount">0</div><div class="kpi-label">Opportunities</div></div></div>
+        <div class="kpi-card kpi-amber"><div class="kpi-icon">🎫</div><div class="kpi-body"><div class="kpi-val" id="ticketOpenCount">0</div><div class="kpi-label">Open Tickets</div></div></div>
+        <div class="kpi-card kpi-teal"><div class="kpi-icon">📁</div><div class="kpi-body"><div class="kpi-val" id="projectActiveCount">0</div><div class="kpi-label">Active Projects</div></div></div>
+        <div class="kpi-card kpi-rose"><div class="kpi-icon">📅</div><div class="kpi-body"><div class="kpi-val" id="renewalDueCount">0</div><div class="kpi-label">Renewals (30d)</div></div></div>
       </div>
 
-      <!-- Dashboard body -->
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="dash-card-header"><h3>Pipeline Forecast</h3></div>
+      <!-- Analytics Row 1: Pipeline + Tickets -->
+      <div class="analytics-row">
+        <div class="analytics-card analytics-wide">
+          <div class="analytics-header"><h3>Sales Pipeline by Stage</h3><span class="analytics-sub">Lead value distribution</span></div>
           <div id="pipelineChart" class="pipeline-chart"></div>
-          <div class="forecast-total">Weighted: <strong>₹<span id="weightedForecast">0</span></strong></div>
+          <div class="forecast-total">Weighted Forecast: <strong>₹<span id="weightedForecast">0</span></strong></div>
         </div>
-        <div class="dash-card">
-          <div class="dash-card-header"><h3>Ticket Status</h3></div>
-          <div id="ticketDonut" class="donut-wrap">
+        <div class="analytics-card">
+          <div class="analytics-header"><h3>Ticket Status</h3><span class="analytics-sub">Current distribution</span></div>
+          <div class="donut-wrap">
             <svg viewBox="0 0 120 120" class="donut-svg" id="donutSvg"></svg>
             <div class="donut-legend" id="donutLegend"></div>
           </div>
         </div>
-        <div class="dash-card">
-          <div class="dash-card-header"><h3>Recent Activity</h3></div>
-          <ul id="activityFeed" class="activity-feed"></ul>
+      </div>
+
+      <!-- Analytics Row 2: Funnel + Workload + Accounts -->
+      <div class="analytics-row analytics-row-3">
+        <div class="analytics-card">
+          <div class="analytics-header"><h3>Lead Conversion Funnel</h3><span class="analytics-sub">Stage-by-stage drop-off</span></div>
+          <div id="conversionFunnel" class="funnel-chart"></div>
         </div>
-        <div class="dash-card">
-          <div class="dash-card-header"><h3>Projects at a Glance</h3></div>
+        <div class="analytics-card">
+          <div class="analytics-header"><h3>Task Workload</h3><span class="analytics-sub">By status</span></div>
+          <div id="workloadChart" class="workload-chart"></div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-header"><h3>Top Accounts</h3><span class="analytics-sub">By tier &amp; renewal</span></div>
+          <div id="topAccounts" class="top-accounts"></div>
+        </div>
+      </div>
+
+      <!-- Analytics Row 3: Projects + Activity -->
+      <div class="analytics-row">
+        <div class="analytics-card">
+          <div class="analytics-header"><h3>Project Health</h3><span class="analytics-sub">Progress overview</span></div>
           <div id="dashProjects" class="dash-projects"></div>
+        </div>
+        <div class="analytics-card analytics-wide">
+          <div class="analytics-header"><h3>Recent Activity</h3><span class="analytics-sub">Latest logged events</span></div>
+          <ul id="activityFeed" class="activity-feed"></ul>
         </div>
       </div>
     </section>
@@ -525,6 +509,35 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Mail Project Status Modal -->
+  <dialog id="mailProjectModal" class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>📧 Send Project Status Report</h3>
+      <button class="modal-close" onclick="closeModal('mailProjectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="mailProjectPreview" class="project-report-preview"></div>
+      <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--text-2);margin-top:.75rem">
+        Recipients (comma separated)
+        <input id="mailProjectTo" placeholder="manager@company.com, client@company.com" />
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--text-2)">
+        Subject
+        <input id="mailProjectSubject" />
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--text-2)">
+        Additional Notes (optional)
+        <textarea id="mailProjectNotes" rows="3" placeholder="Any additional context for the recipient…"></textarea>
+      </label>
+      <div id="mailProjectStatus" class="status-banner hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('mailProjectModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="sendProjectStatus()">Send Report ↗</button>
+    </div>
   </dialog>
 
   <script src="app.js"></script>
