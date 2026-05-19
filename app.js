@@ -14,6 +14,11 @@ const state = {
   milestones:    JSON.parse(localStorage.getItem('crm_milestones')  || '[]'),
   activities:    JSON.parse(localStorage.getItem('crm_activities')  || '[]'),
   documents:     JSON.parse(localStorage.getItem('crm_documents')   || '[]'),
+  portalSessions: JSON.parse(localStorage.getItem('crm_portal_sessions') || '[]'),
+  portalSettings: JSON.parse(localStorage.getItem('crm_portal_settings') || '{"showProjects":true,"showTickets":true,"showDocs":true,"showActivity":false}'),
+  notifications:  JSON.parse(localStorage.getItem('crm_notifications') || '[]'),
+  reminders:      JSON.parse(localStorage.getItem('crm_reminders')     || '[]'),
+  emailTemplates: JSON.parse(localStorage.getItem('crm_templates') || 'null') || null,
   session: null, accessToken: null, refreshToken: null, permissions: new Set(),
 };
 
@@ -1636,8 +1641,6 @@ async function kanbanDrop(e, newStage) {
 // ══════════════════════════════════════════════════════════════════
 
 // State additions
-state.notifications = JSON.parse(localStorage.getItem('crm_notifications') || '[]');
-state.reminders     = JSON.parse(localStorage.getItem('crm_reminders')     || '[]');
 
 function saveNotifState() {
   localStorage.setItem('crm_notifications', JSON.stringify(state.notifications));
@@ -1853,13 +1856,15 @@ function syncReminderDropdown() {
 //  FEATURE 5: EMAIL TEMPLATES
 // ══════════════════════════════════════════════════════════════════
 
-state.emailTemplates = JSON.parse(localStorage.getItem('crm_templates') || 'null') || [
+if (!state.emailTemplates) {
+  state.emailTemplates = [
   { id:'tpl_1', name:'Follow-up', subject:'Following up — {{name}}', body:'Hi {{name}},\n\nI wanted to follow up on our recent conversation. Hope everything is going well at {{company}}.\n\nPlease let me know if you have any questions.\n\nBest regards' },
   { id:'tpl_2', name:'Proposal', subject:'Proposal for {{company}}', body:'Dear {{name}},\n\nThank you for your interest. Please find our proposal attached.\n\nKey highlights:\n• Tailored solution for {{company}}\n• Competitive pricing\n• 30-day onboarding support\n\nLooking forward to your feedback.\n\nBest regards' },
   { id:'tpl_3', name:'Renewal Reminder', subject:'Your renewal is coming up — {{company}}', body:'Hi {{name}},\n\nThis is a friendly reminder that your account with us is due for renewal on {{renewal_date}}.\n\nTo ensure uninterrupted service, please reach out at your earliest convenience.\n\nThank you for being a valued customer.\n\nBest regards' },
   { id:'tpl_4', name:'Onboarding', subject:'Welcome to OrgCRM — Getting started', body:'Hi {{name}},\n\nWelcome! We are thrilled to have {{company}} on board.\n\nHere are your next steps:\n1. Complete your profile\n2. Add your team members\n3. Schedule your onboarding call\n\nReply to this email if you need any help.\n\nBest regards' },
   { id:'tpl_5', name:'Meeting Request', subject:'Meeting request — {{today}}', body:'Hi {{name}},\n\nI hope this message finds you well. I would love to schedule a quick call to discuss how we can support {{company}}.\n\nAre you available this week for a 30-minute call?\n\nBest regards' },
-];
+];;
+}
 
 let _editingTemplateId = null;
 
@@ -2352,9 +2357,6 @@ function renderCalendar() {
 // ══════════════════════════════════════════════════════════════════
 //  FEATURE 9: CUSTOMER PORTAL
 // ══════════════════════════════════════════════════════════════════
-
-state.portalSessions = JSON.parse(localStorage.getItem('crm_portal_sessions') || '[]');
-state.portalSettings = JSON.parse(localStorage.getItem('crm_portal_settings') || '{"showProjects":true,"showTickets":true,"showDocs":true,"showActivity":false}');
 
 function savePortalState() {
   localStorage.setItem('crm_portal_sessions', JSON.stringify(state.portalSessions));
