@@ -515,3 +515,71 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
 .kanban-card:active { cursor: grabbing; }
 .kanban-card.dragging { opacity: .4; transform: scale(.97); box-shadow: none; }
 .kanban-cards.drag-target { background: rgba(37,99,235,.06); border: 2px dashed #93c5fd; border-radius: 8px; min-height: 60px; }
+
+/* ══ Notifications ══ */
+.notif-bell-wrap { position: relative; }
+.notif-bell { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: .25rem .35rem; border-radius: 6px; position: relative; line-height: 1; transition: background .15s; }
+.notif-bell:hover { background: rgba(255,255,255,.1); }
+.notif-badge { position: absolute; top: -2px; right: -3px; background: #e11d48; color: #fff; font-size: .6rem; font-weight: 800; border-radius: 999px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid var(--nav-bg); font-family: var(--mono); }
+.notif-panel { position: absolute; top: calc(100% + 10px); right: -10px; width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); z-index: 200; }
+.notif-panel-header { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border-bottom: 1px solid var(--border); font-weight: 600; font-size: .85rem; }
+.notif-clear-all { background: none; border: none; font-size: .75rem; color: var(--accent); cursor: pointer; font-weight: 500; }
+.notif-clear-all:hover { text-decoration: underline; }
+.notif-list { max-height: 380px; overflow-y: auto; }
+.notif-empty { padding: 1.5rem; text-align: center; color: var(--text-3); font-size: .85rem; }
+.notif-item { display: flex; gap: .6rem; padding: .75rem 1rem; border-bottom: 1px solid var(--border); transition: background .12s; cursor: pointer; }
+.notif-item:hover { background: var(--bg); }
+.notif-item.unread { background: #eff6ff; border-left: 3px solid var(--accent); }
+.notif-item:last-child { border-bottom: none; }
+.notif-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.notif-body { flex: 1; }
+.notif-title { font-size: .82rem; font-weight: 600; margin-bottom: 2px; }
+.notif-desc { font-size: .75rem; color: var(--text-2); line-height: 1.4; }
+.notif-time { font-size: .7rem; color: var(--text-3); white-space: nowrap; margin-top: 2px; }
+.notif-dismiss { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: .85rem; padding: 0 .2rem; align-self: flex-start; }
+.notif-dismiss:hover { color: var(--rose); }
+
+/* ══ Email Templates ══ */
+.template-bar { display: flex; align-items: center; gap: .5rem; padding: .6rem .75rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .65rem; flex-wrap: wrap; }
+.template-bar-label { font-size: .75rem; font-weight: 600; color: var(--text-3); white-space: nowrap; }
+.template-pills { display: flex; gap: .3rem; flex-wrap: wrap; flex: 1; }
+.template-pill { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); font-size: .75rem; font-weight: 500; padding: 3px 10px; border-radius: 999px; cursor: pointer; transition: all .12s; }
+.template-pill:hover { background: #eff6ff; border-color: #93c5fd; color: var(--accent); }
+.merge-fields-bar { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin-bottom: .25rem; }
+.merge-btn { background: #f1f5f9; border: 1px solid var(--border); color: var(--accent); font-size: .7rem; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-family: var(--mono); transition: all .12s; }
+.merge-btn:hover { background: #dbeafe; }
+.template-manager { display: grid; grid-template-columns: 200px 1fr; min-height: 400px; }
+.template-list-panel { border-right: 1px solid var(--border); padding: .75rem; display: flex; flex-direction: column; gap: .3rem; background: var(--bg); }
+.template-list-item { padding: .5rem .75rem; border-radius: 8px; font-size: .82rem; font-weight: 500; cursor: pointer; transition: background .12s; display: flex; align-items: center; justify-content: space-between; }
+.template-list-item:hover { background: var(--surface); }
+.template-list-item.active { background: #eff6ff; color: var(--accent); }
+.template-list-add { padding: .4rem .6rem; border-radius: 7px; font-size: .8rem; font-weight: 600; color: var(--accent); background: none; border: 1px dashed #93c5fd; cursor: pointer; margin-top: .25rem; }
+.template-list-add:hover { background: #eff6ff; }
+.template-edit-panel { padding: 1.25rem; display: flex; flex-direction: column; gap: .65rem; }
+.template-edit-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: .75rem; color: var(--text-3); font-size: .85rem; }
+.template-edit-panel label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: var(--text-2); }
+.template-edit-panel input, .template-edit-panel textarea { padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); font-size: .85rem; }
+.template-edit-panel textarea { min-height: 150px; font-family: var(--font); resize: vertical; }
+
+/* ══ Reminders ══ */
+.reminder-list { display: flex; flex-direction: column; gap: .35rem; }
+.reminder-item { display: flex; align-items: center; gap: .5rem; padding: .45rem .6rem; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-size: .8rem; transition: all .12s; }
+.reminder-item.overdue { background: #fff1f2; border-color: #fca5a5; }
+.reminder-item.today { background: #fefce8; border-color: #fde68a; }
+.reminder-icon { font-size: .9rem; flex-shrink: 0; }
+.reminder-body { flex: 1; min-width: 0; }
+.reminder-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reminder-time { font-size: .7rem; color: var(--text-3); font-family: var(--mono); }
+.reminder-dismiss { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: .85rem; }
+.reminder-dismiss:hover { color: var(--rose); }
+
+/* ══ Health Score ══ */
+.health-badge { display: inline-flex; align-items: center; gap: 3px; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.health-A { background: #dcfce7; color: #166534; }
+.health-B { background: #d1fae5; color: #065f46; }
+.health-C { background: #fef3c7; color: #92400e; }
+.health-D { background: #fee2e2; color: #991b1b; }
+.health-score-bar { display: flex; align-items: center; gap: .5rem; }
+.health-score-val { font-size: .85rem; font-weight: 800; font-family: var(--mono); min-width: 28px; }
+.health-mini-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.health-mini-fill { height: 100%; border-radius: 999px; transition: width .5s; }

@@ -141,7 +141,10 @@ function switchProjectView(view) {
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────────
-function openModal(id) { q(id).showModal(); }
+function openModal(id) {
+  q(id).showModal();
+  if (id==='templateModal') { renderTemplateManager(); renderTemplatePills(); }
+}
 function closeModal(id) { q(id).close(); }
 
 // ── Forms ─────────────────────────────────────────────────────────────────────
@@ -510,7 +513,8 @@ function renderContactList(list) {
         <div class="record-name">${c.name}</div>
         <div class="record-sub">${c.company||''} · ${c.email} · ${c.location||''}</div>
       </div>
-      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋 Timeline</button>
+      ${getHealthBadge(c.id)}
+      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋</button>
       ${actBtns('contacts',c.id,canE,canD)}
     </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No contacts. Log in and add one.</li>';
 }
@@ -761,6 +765,12 @@ function renderAll() {
   syncDocDropdowns();
   renderDocuments();
   if (q('reportBody')) renderReport();
+  renderHealthScores();
+  renderNotifBell();
+  renderNotifPanel();
+  renderReminders();
+  renderTemplatePills();
+  syncReminderDropdown();
 }
 
 
@@ -1187,6 +1197,9 @@ renderSession();
 renderAll();
 checkSmtp();
 q('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+requestNotifPermission();
+runNotifScan();
+setInterval(runNotifScan, 5 * 60 * 1000);
 
 // ══════════════════════════════════════════════════════════════════
 //  FEATURE 1: REPORTS & CSV/PDF EXPORT
@@ -1613,3 +1626,415 @@ async function kanbanDrop(e, newStage) {
   renderSales();
   renderDashboard();
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 4: NOTIFICATIONS & REMINDERS
+// ══════════════════════════════════════════════════════════════════
+
+// State additions
+state.notifications = JSON.parse(localStorage.getItem('crm_notifications') || '[]');
+state.reminders     = JSON.parse(localStorage.getItem('crm_reminders')     || '[]');
+
+function saveNotifState() {
+  localStorage.setItem('crm_notifications', JSON.stringify(state.notifications));
+  localStorage.setItem('crm_reminders',     JSON.stringify(state.reminders));
+}
+
+// ── Push a notification ───────────────────────────────────────────
+function pushNotif(title, desc, icon='🔔', type='info') {
+  const notif = {
+    id:    crypto.randomUUID(),
+    title, desc, icon, type,
+    time:  new Date().toISOString(),
+    read:  false,
+  };
+  state.notifications.unshift(notif);
+  if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
+  saveNotifState();
+  renderNotifBell();
+  renderNotifPanel();
+}
+
+function renderNotifBell() {
+  const unread = state.notifications.filter(n=>!n.read).length;
+  const badge  = q('notifBadge');
+  if (!badge) return;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? '9+' : unread;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function toggleNotifPanel() {
+  const panel = q('notifPanel');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+  if (isHidden) {
+    // Mark all as read when opened
+    state.notifications.forEach(n=>n.read=true);
+    saveNotifState();
+    renderNotifBell();
+    renderNotifPanel();
+  }
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', e => {
+  const wrap = q('notifBellWrap');
+  if (wrap && !wrap.contains(e.target)) q('notifPanel')?.classList.add('hidden');
+});
+
+function renderNotifPanel() {
+  const list = q('notifList');
+  if (!list) return;
+  if (!state.notifications.length) {
+    list.innerHTML = '<div class="notif-empty">No notifications</div>';
+    return;
+  }
+  const typeIcons = { info:'ℹ️', warning:'⚠️', success:'✅', error:'❌', reminder:'⏰', renewal:'📅', health:'💊' };
+  list.innerHTML = state.notifications.slice(0, 20).map(n => `
+    <div class="notif-item ${n.read?'':'unread'}">
+      <div class="notif-icon">${n.icon || typeIcons[n.type] || '🔔'}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-desc">${n.desc}</div>
+        <div class="notif-time">${timeAgo(n.time)}</div>
+      </div>
+      <button class="notif-dismiss" onclick="dismissNotif('${n.id}')" title="Dismiss">✕</button>
+    </div>`).join('');
+}
+
+function dismissNotif(id) {
+  state.notifications = state.notifications.filter(n=>n.id!==id);
+  saveNotifState();
+  renderNotifBell();
+  renderNotifPanel();
+}
+
+function clearAllNotifs() {
+  state.notifications = [];
+  saveNotifState();
+  renderNotifBell();
+  renderNotifPanel();
+}
+
+// ── Reminders ─────────────────────────────────────────────────────
+function saveReminder() {
+  const title = q('reminderTitle').value.trim();
+  const dt    = q('reminderDateTime').value;
+  if (!title) { alert('Reminder title is required.'); return; }
+  if (!dt)    { alert('Date and time are required.'); return; }
+  const reminder = {
+    id:          crypto.randomUUID(),
+    title,
+    datetime:    dt,
+    type:        q('reminderType').value,
+    contactId:   q('reminderContact').value || null,
+    notes:       q('reminderNotes').value.trim(),
+    dismissed:   false,
+    created_at:  new Date().toISOString(),
+  };
+  state.reminders.push(reminder);
+  saveNotifState();
+  ['reminderTitle','reminderDateTime','reminderNotes'].forEach(id=>{const el=q(id);if(el)el.value='';});
+  q('reminderContact').value='';
+  closeModal('reminderModal');
+  renderReminders();
+  pushNotif(`Reminder set: ${title}`, `Scheduled for ${new Date(dt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`, '⏰', 'reminder');
+}
+
+function renderReminders() {
+  const list = q('reminderList');
+  if (!list) return;
+  const now    = new Date();
+  const active = state.reminders.filter(r=>!r.dismissed).sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+
+  if (!active.length) { list.innerHTML = '<div style="color:var(--text-3);font-size:.78rem;padding:.4rem">No active reminders.</div>'; return; }
+
+  const typeIcons = { 'Follow-up':'🔁', 'Renewal':'📅', 'Meeting':'🤝', 'Task Deadline':'✅', 'Custom':'⏰' };
+  list.innerHTML = active.map(r => {
+    const dt       = new Date(r.datetime);
+    const isOverdue = dt < now;
+    const isToday   = dt.toDateString() === now.toDateString();
+    const cls       = isOverdue ? 'overdue' : isToday ? 'today' : '';
+    const contact   = r.contactId ? state.contacts.find(c=>c.id===r.contactId)?.name : null;
+    return `
+      <div class="reminder-item ${cls}">
+        <span class="reminder-icon">${typeIcons[r.type]||'⏰'}</span>
+        <div class="reminder-body">
+          <div class="reminder-title">${r.title}</div>
+          <div class="reminder-time">${dt.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${contact?' · '+contact:''}</div>
+        </div>
+        <button class="reminder-dismiss" onclick="dismissReminder('${r.id}')" title="Dismiss">✓</button>
+      </div>`;
+  }).join('');
+}
+
+function dismissReminder(id) {
+  const r = state.reminders.find(r=>r.id===id);
+  if (r) { r.dismissed=true; saveNotifState(); renderReminders(); }
+}
+
+// ── Automatic notification scanner ───────────────────────────────
+function runNotifScan() {
+  const now   = new Date();
+  const in30d = new Date(Date.now() + 30*86400000);
+  const in7d  = new Date(Date.now() + 7*86400000);
+
+  // Renewals due in 30 days
+  state.accounts.forEach(a => {
+    if (!a.renewalDate || a._renewalNotifSent) return;
+    const d = new Date(a.renewalDate);
+    if (d >= now && d <= in30d) {
+      const days = Math.ceil((d-now)/86400000);
+      pushNotif(`Renewal Due: ${a.name}`, `${a.tier} account renewal in ${days} day${days!==1?'s':''}.`, '📅', 'renewal');
+      a._renewalNotifSent = true;
+      persistLocal();
+    }
+  });
+
+  // Overdue tasks
+  state.tasks.forEach(t => {
+    if (!t.dueDate || t.status==='Done' || t._overdueNotifSent) return;
+    const d = new Date(t.dueDate);
+    if (d < now) {
+      pushNotif(`Overdue Task`, `"${t.title}" was due ${fmtDate(t.dueDate)}.`, '⚠️', 'warning');
+      t._overdueNotifSent = true;
+      persistLocal();
+    }
+  });
+
+  // Reminders firing now
+  state.reminders.forEach(r => {
+    if (r.dismissed || r._fired) return;
+    const d = new Date(r.datetime);
+    if (d <= now) {
+      pushNotif(`Reminder: ${r.title}`, r.notes || r.type, '⏰', 'reminder');
+      r._fired = true;
+      saveNotifState();
+      // Browser notification if permitted
+      if (Notification.permission === 'granted') {
+        new Notification(`OrgCRM: ${r.title}`, { body: r.notes||r.type, icon: '/favicon.ico' });
+      }
+    }
+  });
+
+  // High priority open tickets > 3
+  const highOpen = state.tickets.filter(t=>t.priority==='High'&&t.status==='Open');
+  if (highOpen.length >= 3 && !sessionStorage.getItem('highTicketNotifSent')) {
+    pushNotif(`${highOpen.length} High Priority Tickets Open`, 'Review and resolve open high-priority tickets.', '🎫', 'warning');
+    sessionStorage.setItem('highTicketNotifSent','1');
+  }
+}
+
+// Request browser notification permission
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Sync reminder contact dropdown
+function syncReminderDropdown() {
+  const el = q('reminderContact');
+  if (!el) return;
+  el.innerHTML = '<option value="">— None —</option>' + state.contacts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 5: EMAIL TEMPLATES
+// ══════════════════════════════════════════════════════════════════
+
+state.emailTemplates = JSON.parse(localStorage.getItem('crm_templates') || 'null') || [
+  { id:'tpl_1', name:'Follow-up', subject:'Following up — {{name}}', body:'Hi {{name}},\n\nI wanted to follow up on our recent conversation. Hope everything is going well at {{company}}.\n\nPlease let me know if you have any questions.\n\nBest regards' },
+  { id:'tpl_2', name:'Proposal', subject:'Proposal for {{company}}', body:'Dear {{name}},\n\nThank you for your interest. Please find our proposal attached.\n\nKey highlights:\n• Tailored solution for {{company}}\n• Competitive pricing\n• 30-day onboarding support\n\nLooking forward to your feedback.\n\nBest regards' },
+  { id:'tpl_3', name:'Renewal Reminder', subject:'Your renewal is coming up — {{company}}', body:'Hi {{name}},\n\nThis is a friendly reminder that your account with us is due for renewal on {{renewal_date}}.\n\nTo ensure uninterrupted service, please reach out at your earliest convenience.\n\nThank you for being a valued customer.\n\nBest regards' },
+  { id:'tpl_4', name:'Onboarding', subject:'Welcome to OrgCRM — Getting started', body:'Hi {{name}},\n\nWelcome! We are thrilled to have {{company}} on board.\n\nHere are your next steps:\n1. Complete your profile\n2. Add your team members\n3. Schedule your onboarding call\n\nReply to this email if you need any help.\n\nBest regards' },
+  { id:'tpl_5', name:'Meeting Request', subject:'Meeting request — {{today}}', body:'Hi {{name}},\n\nI hope this message finds you well. I would love to schedule a quick call to discuss how we can support {{company}}.\n\nAre you available this week for a 30-minute call?\n\nBest regards' },
+];
+
+let _editingTemplateId = null;
+
+function saveTemplateState() {
+  localStorage.setItem('crm_templates', JSON.stringify(state.emailTemplates));
+}
+
+function renderTemplatePills() {
+  const pills = q('templatePills');
+  if (!pills) return;
+  pills.innerHTML = state.emailTemplates.map(t =>
+    `<button class="template-pill" onclick="applyTemplate('${t.id}')">${t.name}</button>`
+  ).join('');
+}
+
+function applyTemplate(id) {
+  const tpl = state.emailTemplates.find(t=>t.id===id);
+  if (!tpl) return;
+  // Get first selected contact for merge fields
+  const contact = state.contacts[0];
+  const merge = v => v
+    .replace(/\{\{name\}\}/g,          contact?.name        || '{{name}}')
+    .replace(/\{\{company\}\}/g,        contact?.company     || '{{company}}')
+    .replace(/\{\{email\}\}/g,          contact?.email       || '{{email}}')
+    .replace(/\{\{renewal_date\}\}/g,   (() => {
+      const acc = state.accounts.find(a=>a.name===contact?.company);
+      return acc?.renewalDate ? fmtDate(acc.renewalDate) : '{{renewal_date}}';
+    })())
+    .replace(/\{\{today\}\}/g, new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}));
+  q('mailSubject').value = merge(tpl.subject);
+  q('mailBody').value    = merge(tpl.body);
+  pushNotif(`Template applied: ${tpl.name}`, 'Review and personalise before sending.', '📨', 'info');
+}
+
+function insertMerge(field) {
+  const ta = q('mailBody');
+  if (!ta) return;
+  const pos = ta.selectionStart;
+  const val = ta.value;
+  ta.value = val.slice(0, pos) + field + val.slice(ta.selectionEnd);
+  ta.selectionStart = ta.selectionEnd = pos + field.length;
+  ta.focus();
+}
+
+function renderTemplateManager() {
+  const listEl = q('templateListPanel');
+  if (!listEl) return;
+  listEl.innerHTML = state.emailTemplates.map(t => `
+    <div class="template-list-item ${_editingTemplateId===t.id?'active':''}" onclick="editTemplate('${t.id}')">
+      <span>${t.name}</span>
+      <button style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:.8rem" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</button>
+    </div>`).join('') +
+    `<button class="template-list-add" onclick="newTemplate()">+ New Template</button>`;
+}
+
+function editTemplate(id) {
+  _editingTemplateId = id;
+  const tpl = state.emailTemplates.find(t=>t.id===id);
+  if (!tpl) return;
+  renderTemplateManager();
+  const editPanel = q('templateEditForm');
+  editPanel.innerHTML = `
+    <label>Template Name<input id="tplName" value="${tpl.name}" placeholder="Template name" /></label>
+    <label>Subject<input id="tplSubject" value="${tpl.subject}" placeholder="Email subject…" /></label>
+    <label>Body<textarea id="tplBody" rows="8">${tpl.body}</textarea></label>
+    <div style="display:flex;gap:.5rem;margin-top:.25rem">
+      <button class="btn-modal-primary" onclick="saveTemplate()">Save Template</button>
+      <button class="btn-modal-secondary" onclick="applyTemplate('${id}');closeModal('templateModal')">Use Now</button>
+    </div>`;
+  editPanel.className = 'template-edit-panel';
+}
+
+function newTemplate() {
+  const id = `tpl_${crypto.randomUUID().slice(0,8)}`;
+  state.emailTemplates.push({ id, name:'New Template', subject:'', body:'' });
+  saveTemplateState();
+  renderTemplateManager();
+  editTemplate(id);
+}
+
+function saveTemplate() {
+  const tpl = state.emailTemplates.find(t=>t.id===_editingTemplateId);
+  if (!tpl) return;
+  tpl.name    = q('tplName')?.value.trim()    || tpl.name;
+  tpl.subject = q('tplSubject')?.value.trim() || '';
+  tpl.body    = q('tplBody')?.value           || '';
+  saveTemplateState();
+  renderTemplatePills();
+  renderTemplateManager();
+  pushNotif(`Template saved: ${tpl.name}`, 'Your template is ready to use.', '📨', 'success');
+}
+
+function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  state.emailTemplates = state.emailTemplates.filter(t=>t.id!==id);
+  if (_editingTemplateId===id) { _editingTemplateId=null; if(q('templateEditForm')) q('templateEditForm').innerHTML='<p style="color:var(--text-3)">Select a template.</p>'; }
+  saveTemplateState();
+  renderTemplatePills();
+  renderTemplateManager();
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 6: CUSTOMER HEALTH SCORE
+// ══════════════════════════════════════════════════════════════════
+
+function calcHealthScore(contactId) {
+  let score = 50; // baseline
+
+  const leads    = state.leads.filter(l=>l.contact_id===contactId);
+  const tickets  = state.tickets.filter(t=>t.contact_id===contactId);
+  const acts     = state.activities.filter(a=>a.contactId===contactId);
+  const projects = state.projects.filter(p=>p.contactId===contactId);
+  const account  = state.contacts.find(c=>c.id===contactId);
+  const now      = new Date();
+  const in30d    = new Date(Date.now()+30*86400000);
+
+  // Positive signals
+  const wonLeads = leads.filter(l=>l.stage==='Won');
+  score += wonLeads.length * 12;                                            // won deals
+  score += Math.min(acts.length * 3, 20);                                  // engagement (capped)
+  score += projects.filter(p=>p.status==='Completed').length * 8;          // completed projects
+  score += projects.filter(p=>p.status==='Active').length * 4;             // active projects
+  const recentActs = acts.filter(a=>a.created_at && new Date(a.created_at)>new Date(Date.now()-30*86400000));
+  score += Math.min(recentActs.length * 5, 15);                            // recent activity
+
+  // Negative signals
+  const openHighTickets = tickets.filter(t=>t.status!=='Resolved'&&t.priority==='High');
+  score -= openHighTickets.length * 12;                                     // unresolved high tickets
+  score -= tickets.filter(t=>t.status==='Open').length * 4;                // open tickets
+  const lostLeads = leads.filter(l=>l.stage==='Lost');
+  score -= lostLeads.length * 8;                                            // lost deals
+
+  // Renewal risk
+  const linkedAccount = state.accounts.find(a=>a.name===account?.company);
+  if (linkedAccount?.renewalDate) {
+    const renDate = new Date(linkedAccount.renewalDate);
+    if (renDate < now)  score -= 20;                                        // overdue renewal
+    else if (renDate <= in30d) score -= 10;                                 // renewal soon
+  }
+
+  // No recent contact
+  if (acts.length > 0) {
+    const lastAct = new Date(Math.max(...acts.map(a=>new Date(a.created_at||0))));
+    const daysSince = (now-lastAct)/86400000;
+    if (daysSince > 90) score -= 15;
+    else if (daysSince > 30) score -= 5;
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let grade, color;
+  if      (score >= 80) { grade='A'; color='#16a34a'; }
+  else if (score >= 60) { grade='B'; color='#0d9488'; }
+  else if (score >= 40) { grade='C'; color='#d97706'; }
+  else                  { grade='D'; color='#e11d48'; }
+
+  return { score, grade, color };
+}
+
+function renderHealthScores() {
+  // Inject health score next to each contact record
+  state.contacts.forEach(c => {
+    const { score, grade, color } = calcHealthScore(c.id);
+    c._health = { score, grade, color };
+  });
+
+  // Also notify if any contacts drop to D grade
+  state.contacts.forEach(c => {
+    if (c._health?.grade==='D' && !c._healthAlerted) {
+      pushNotif(`Low Health Score: ${c.name}`, `Score dropped to ${c._health.score}/100 (Grade D). Review account.`, '💊', 'health');
+      c._healthAlerted = true;
+    }
+  });
+}
+
+function getHealthBadge(contactId) {
+  const h = state.contacts.find(c=>c.id===contactId)?._health;
+  if (!h) return '';
+  return `<span class="health-badge health-${h.grade}" title="Health Score: ${h.score}/100">${h.grade} ${h.score}</span>`;
+}
+

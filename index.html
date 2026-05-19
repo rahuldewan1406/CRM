@@ -31,6 +31,21 @@
     </nav>
     <div class="topbar-user">
       <span id="smtpDot" class="status-dot" title="SMTP Status"></span>
+      <div class="notif-bell-wrap" id="notifBellWrap">
+        <button class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" title="Notifications">
+          🔔
+          <span class="notif-badge hidden" id="notifBadge">0</span>
+        </button>
+        <div class="notif-panel hidden" id="notifPanel">
+          <div class="notif-panel-header">
+            <span>Notifications</span>
+            <button class="notif-clear-all" onclick="clearAllNotifs()">Clear all</button>
+          </div>
+          <div id="notifList" class="notif-list">
+            <div class="notif-empty">No notifications</div>
+          </div>
+        </div>
+      </div>
       <div id="userChip" class="user-chip hidden">
         <div class="user-avatar" id="userAvatar">A</div>
         <div class="user-info">
@@ -422,6 +437,12 @@
       <div class="two-col">
         <div class="panel">
           <h4 class="panel-title">Compose</h4>
+          <!-- Template picker -->
+          <div class="template-bar">
+            <span class="template-bar-label">Templates:</span>
+            <div id="templatePills" class="template-pills"></div>
+            <button class="btn-ghost-sm" style="font-size:.75rem" onclick="openModal('templateModal')">⚙ Manage</button>
+          </div>
           <form id="mailForm" class="mail-form">
             <select id="mailMode">
               <option value="single">Single Recipient</option>
@@ -429,8 +450,16 @@
               <option value="bulk">Bulk — All Contacts</option>
             </select>
             <input id="mailTo" placeholder="To: email address(es)" />
-            <input id="mailSubject" placeholder="Subject" required />
-            <textarea id="mailBody" rows="8" placeholder="Message body…" required></textarea>
+            <input id="mailSubject" placeholder="Subject" />
+            <div class="merge-fields-bar">
+              <span style="font-size:.72rem;color:var(--text-3)">Merge fields:</span>
+              <button type="button" class="merge-btn" onclick="insertMerge('{{name}}')">{{name}}</button>
+              <button type="button" class="merge-btn" onclick="insertMerge('{{company}}')">{{company}}</button>
+              <button type="button" class="merge-btn" onclick="insertMerge('{{email}}')">{{email}}</button>
+              <button type="button" class="merge-btn" onclick="insertMerge('{{renewal_date}}')">{{renewal_date}}</button>
+              <button type="button" class="merge-btn" onclick="insertMerge('{{today}}')">{{today}}</button>
+            </div>
+            <textarea id="mailBody" rows="8" placeholder="Message body… Use {{name}}, {{company}}, {{email}}, {{renewal_date}}, {{today}} as merge fields."></textarea>
             <button type="submit" class="btn-send">Send via SMTP ↗</button>
           </form>
           <div id="mailStatus" class="status-banner hidden"></div>
@@ -442,6 +471,9 @@
           <div class="mail-stats">
             <div><strong id="contactEmailCount">0</strong><span>Contacts with email</span></div>
           </div>
+          <div class="panel-title" style="margin-top:1.5rem">⏰ Reminders</div>
+          <div id="reminderList" class="reminder-list"></div>
+          <button class="btn-secondary-sm" style="margin-top:.5rem;width:100%" onclick="openModal('reminderModal')">+ Add Reminder</button>
         </div>
       </div>
     </section>
@@ -618,6 +650,48 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Email Template Modal -->
+  <dialog id="templateModal" class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>📨 Email Templates</h3>
+      <button class="modal-close" onclick="closeModal('templateModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div class="template-manager">
+        <div class="template-list-panel" id="templateListPanel"></div>
+        <div class="template-edit-panel">
+          <div id="templateEditForm" class="template-edit-empty">
+            <p>Select a template to edit, or create a new one.</p>
+            <button class="btn-primary-sm" onclick="newTemplate()">+ New Template</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Reminder Modal -->
+  <dialog id="reminderModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>⏰ Add Reminder</h3>
+      <button class="modal-close" onclick="closeModal('reminderModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Title<input id="reminderTitle" placeholder="Follow up with Acme Corp" /></label>
+      <label>Date &amp; Time<input id="reminderDateTime" type="datetime-local" /></label>
+      <label>Type<select id="reminderType">
+        <option>Follow-up</option><option>Renewal</option><option>Meeting</option>
+        <option>Task Deadline</option><option>Custom</option>
+      </select></label>
+      <label>Link to Contact<select id="reminderContact"><option value="">— None —</option></select></label>
+      <label>Notes<textarea id="reminderNotes" rows="2" placeholder="Optional notes…"></textarea></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('reminderModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="saveReminder()">Save Reminder</button>
+    </div>
   </dialog>
 
 
