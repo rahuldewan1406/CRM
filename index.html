@@ -25,8 +25,10 @@
       <button class="tnav" data-tab="sales">Sales</button>
       <button class="tnav" data-tab="projects">Projects</button>
       <button class="tnav" data-tab="support">Support</button>
+      <button class="tnav" data-tab="calendar">Calendar</button>
       <button class="tnav" data-tab="reports">Reports</button>
       <button class="tnav" data-tab="documents">Documents</button>
+      <button class="tnav" data-tab="portal-admin">Portal</button>
       <button class="tnav" data-tab="email">Email</button>
     </nav>
     <div class="topbar-user">
@@ -138,6 +140,14 @@
         <div class="panel">
           <div class="panel-toolbar">
             <input id="contactSearch" class="search-box" placeholder="🔍  Search contacts…" oninput="filterContacts()" />
+            <label class="bulk-select-all" title="Select all"><input type="checkbox" id="selectAllContacts" onchange="toggleSelectAll('contacts',this.checked)" />All</label>
+          </div>
+          <div id="bulkContactBar" class="bulk-action-bar hidden">
+            <span id="bulkContactCount" class="bulk-count">0 selected</span>
+            <button class="bulk-btn" onclick="bulkEmail('contacts')">📧 Email</button>
+            <button class="bulk-btn" onclick="bulkExport('contacts')">⬇ Export</button>
+            <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('contacts')">🗑 Delete</button>
+            <button class="bulk-btn-ghost" onclick="clearBulkSelection('contacts')">✕ Clear</button>
           </div>
           <ul id="contactList" class="record-list"></ul>
         </div>
@@ -201,6 +211,13 @@
 
       <!-- Opportunities -->
       <div class="section-divider">Opportunities</div>
+      <div id="bulkLeadBar" class="bulk-action-bar hidden">
+        <span id="bulkLeadCount" class="bulk-count">0 selected</span>
+        <button class="bulk-btn" onclick="bulkExport('leads')">⬇ Export</button>
+        <button class="bulk-btn" onclick="bulkUpdateStage()">🔄 Change Stage</button>
+        <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('leads')">🗑 Delete</button>
+        <button class="bulk-btn-ghost" onclick="clearBulkSelection('leads')">✕ Clear</button>
+      </div>
       <ul id="opportunityList" class="record-list opp-list"></ul>
       <div class="forecast-bar">
         <span>Weighted Pipeline Forecast:</span>
@@ -313,6 +330,13 @@
               <option value="All">All Priorities</option><option>High</option><option>Medium</option><option>Low</option>
             </select>
           </div>
+          <div id="bulkTicketBar" class="bulk-action-bar hidden">
+            <span id="bulkTicketCount" class="bulk-count">0 selected</span>
+            <button class="bulk-btn" onclick="bulkResolveTickets()">✅ Resolve All</button>
+            <button class="bulk-btn" onclick="bulkExport('tickets')">⬇ Export</button>
+            <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('tickets')">🗑 Delete</button>
+            <button class="bulk-btn-ghost" onclick="clearBulkSelection('tickets')">✕ Clear</button>
+          </div>
           <ul id="ticketList" class="ticket-list"></ul>
         </div>
         <div class="panel">
@@ -322,6 +346,77 @@
         </div>
       </div>
     </section>
+
+    <!-- ══════════════════════════════════════════════════
+         CUSTOMER PORTAL
+    ══════════════════════════════════════════════════ -->
+    <section id="portal-admin" class="page">
+      <div class="page-header">
+        <h1>Customer Portal Admin</h1>
+        <button class="btn-primary-sm" onclick="openModal('portalLinkModal')">🔗 Generate Portal Link</button>
+      </div>
+      <div class="portal-admin-grid">
+        <div class="panel">
+          <h4 class="panel-title">Active Portal Sessions</h4>
+          <div id="portalSessionList" class="portal-session-list"></div>
+        </div>
+        <div class="panel">
+          <h4 class="panel-title">Portal Settings</h4>
+          <div class="portal-settings">
+            <label class="portal-toggle">
+              <span>Show project status</span>
+              <input type="checkbox" id="ptShowProjects" checked onchange="savePortalSettings()" />
+            </label>
+            <label class="portal-toggle">
+              <span>Show tickets</span>
+              <input type="checkbox" id="ptShowTickets" checked onchange="savePortalSettings()" />
+            </label>
+            <label class="portal-toggle">
+              <span>Show documents</span>
+              <input type="checkbox" id="ptShowDocs" checked onchange="savePortalSettings()" />
+            </label>
+            <label class="portal-toggle">
+              <span>Show activity log</span>
+              <input type="checkbox" id="ptShowActivity" onchange="savePortalSettings()" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════
+         CALENDAR
+    ══════════════════════════════════════════════════ -->
+    <section id="calendar" class="page">
+      <div class="page-header">
+        <h1>Calendar</h1>
+        <div class="btn-group">
+          <button class="btn-ghost-sm" onclick="calNav(-1)">‹ Prev</button>
+          <button class="btn-secondary-sm" onclick="calToday()">Today</button>
+          <button class="btn-ghost-sm" onclick="calNav(1)">Next ›</button>
+          <span id="calMonthLabel" style="font-weight:700;font-size:.95rem;color:#fff;padding:0 .5rem;align-self:center"></span>
+        </div>
+        <div class="btn-group">
+          <button class="cal-view-btn active" data-calview="month" onclick="switchCalView('month')">Month</button>
+          <button class="cal-view-btn" data-calview="week" onclick="switchCalView('week')">Week</button>
+          <button class="cal-view-btn" data-calview="agenda" onclick="switchCalView('agenda')">Agenda</button>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="cal-legend">
+        <span class="cal-legend-item"><span class="cal-dot cal-dot-task"></span>Tasks</span>
+        <span class="cal-legend-item"><span class="cal-dot cal-dot-milestone"></span>Milestones</span>
+        <span class="cal-legend-item"><span class="cal-dot cal-dot-renewal"></span>Renewals</span>
+        <span class="cal-legend-item"><span class="cal-dot cal-dot-reminder"></span>Reminders</span>
+        <span class="cal-legend-item"><span class="cal-dot cal-dot-activity"></span>Activities</span>
+      </div>
+
+      <!-- Calendar grid -->
+      <div id="calendarWrap" class="calendar-wrap"></div>
+    </section>
+
 
     <!-- ══════════════════════════════════════════════════
          REPORTS
@@ -650,6 +745,69 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Bulk Email Modal -->
+  <dialog id="bulkEmailModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>📧 Bulk Email</h3>
+      <button class="modal-close" onclick="closeModal('bulkEmailModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="bulkEmailCount" style="font-size:.82rem;color:var(--text-2);margin-bottom:.5rem"></p>
+      <label>Subject<input id="bulkEmailSubject" placeholder="Subject line…" /></label>
+      <label>Message<textarea id="bulkEmailBody" rows="6" placeholder="Message body… Use {{name}}, {{company}} as merge fields."></textarea></label>
+      <p id="bulkEmailError" style="color:var(--rose);font-size:.8rem;min-height:1rem"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('bulkEmailModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" id="sendBulkBtn" onclick="sendBulkEmail()">Send to All</button>
+    </div>
+  </dialog>
+
+  <!-- Bulk Stage Modal -->
+  <dialog id="bulkStageModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>🔄 Change Stage</h3>
+      <button class="modal-close" onclick="closeModal('bulkStageModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>New Stage<select id="bulkNewStage">
+        <option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option>
+      </select></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('bulkStageModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="confirmBulkStage()">Apply</button>
+    </div>
+  </dialog>
+
+  <!-- Portal Link Modal -->
+  <dialog id="portalLinkModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>🔗 Generate Portal Link</h3>
+      <button class="modal-close" onclick="closeModal('portalLinkModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Select Contact<select id="portalContactSelect"><option value="">— Select —</option></select></label>
+      <label>Expires in<select id="portalExpiry">
+        <option value="7">7 days</option><option value="30">30 days</option>
+        <option value="90">90 days</option><option value="365">1 year</option>
+      </select></label>
+      <div id="portalLinkResult" class="portal-link-result hidden">
+        <p style="font-size:.8rem;color:var(--text-2);margin-bottom:.4rem">Share this link with your customer:</p>
+        <div class="portal-link-box">
+          <input id="portalLinkUrl" readonly class="portal-link-input" />
+          <button class="btn-primary-sm" onclick="copyPortalLink()">Copy</button>
+        </div>
+        <p style="font-size:.75rem;color:var(--text-3);margin-top:.4rem">⚠ This link gives read-only access to this contact's data.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('portalLinkModal')">Close</button>
+      <button type="button" class="btn-modal-primary" onclick="generatePortalLink()">Generate Link</button>
+    </div>
   </dialog>
 
 

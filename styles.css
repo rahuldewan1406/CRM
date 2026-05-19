@@ -583,3 +583,95 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
 .health-score-val { font-size: .85rem; font-weight: 800; font-family: var(--mono); min-width: 28px; }
 .health-mini-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 999px; overflow: hidden; }
 .health-mini-fill { height: 100%; border-radius: 999px; transition: width .5s; }
+
+/* ══ Bulk Actions ══ */
+.bulk-select-all { display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text-3);cursor:pointer;user-select:none; }
+.bulk-select-all input { cursor:pointer;width:14px;height:14px; }
+.bulk-action-bar { display:flex;align-items:center;gap:.4rem;padding:.5rem .75rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);margin-bottom:.5rem;flex-wrap:wrap; }
+.bulk-count { font-size:.8rem;font-weight:700;color:var(--accent);min-width:80px; }
+.bulk-btn { background:var(--surface);border:1px solid var(--border-strong);color:var(--text);font-size:.75rem;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;transition:all .12s; }
+.bulk-btn:hover { background:var(--bg); }
+.bulk-btn-danger { border-color:#fca5a5;color:var(--rose); }
+.bulk-btn-danger:hover { background:#fff1f2; }
+.bulk-btn-ghost { background:none;border:none;color:var(--text-3);font-size:.8rem;cursor:pointer;padding:4px 6px; }
+.bulk-btn-ghost:hover { color:var(--rose); }
+.record-list li .bulk-checkbox { width:15px;height:15px;cursor:pointer;flex-shrink:0; }
+
+/* ══ Calendar ══ */
+.cal-legend { display:flex;gap:1rem;margin-bottom:.75rem;flex-wrap:wrap; }
+.cal-legend-item { display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text-2); }
+.cal-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.cal-dot-task { background:#2563eb; }
+.cal-dot-milestone { background:#7c3aed; }
+.cal-dot-renewal { background:#e11d48; }
+.cal-dot-reminder { background:#d97706; }
+.cal-dot-activity { background:#0d9488; }
+.cal-view-btn { background:none;border:1px solid rgba(255,255,255,.2);color:#94a3b8;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;cursor:pointer;transition:all .15s; }
+.cal-view-btn.active,.cal-view-btn:hover { background:rgba(255,255,255,.1);color:#e2e8f0; }
+.calendar-wrap { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow); }
+/* Month grid */
+.cal-grid { display:grid;grid-template-columns:repeat(7,1fr); }
+.cal-dow { background:var(--bg);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);padding:.55rem;text-align:center;border-bottom:1px solid var(--border); }
+.cal-cell { min-height:100px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:.35rem;position:relative;cursor:default;transition:background .12s; }
+.cal-cell:nth-child(7n) { border-right:none; }
+.cal-cell:hover { background:#fafafa; }
+.cal-cell.other-month { background:#f8fafc; }
+.cal-cell.today { background:#eff6ff; }
+.cal-cell.today .cal-day-num { background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center; }
+.cal-day-num { font-size:.8rem;font-weight:600;color:var(--text-2);margin-bottom:.2rem;width:22px;height:22px;display:flex;align-items:center;justify-content:center; }
+.cal-event { font-size:.67rem;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:500;line-height:1.3; }
+.cal-event-task { background:#dbeafe;color:#1e40af; }
+.cal-event-milestone { background:#ede9fe;color:#5b21b6; }
+.cal-event-renewal { background:#fee2e2;color:#991b1b; }
+.cal-event-reminder { background:#fef3c7;color:#92400e; }
+.cal-event-activity { background:#ccfbf1;color:#115e59; }
+.cal-more { font-size:.67rem;color:var(--text-3);cursor:pointer;padding:1px 4px; }
+.cal-more:hover { color:var(--accent); }
+/* Week view */
+.cal-week-grid { display:grid;grid-template-columns:60px repeat(7,1fr);border-top:1px solid var(--border); }
+.cal-week-header { display:grid;grid-template-columns:60px repeat(7,1fr);border-bottom:1px solid var(--border); }
+.cal-week-dow { padding:.5rem .35rem;text-align:center;font-size:.75rem;font-weight:600;color:var(--text-2);border-right:1px solid var(--border); }
+.cal-week-dow.today-col { color:var(--accent);font-weight:800; }
+.cal-hour-label { font-size:.65rem;color:var(--text-3);padding:.2rem .3rem;text-align:right;border-right:1px solid var(--border);height:44px;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:4px; }
+.cal-hour-cell { border-right:1px solid var(--border);border-bottom:1px solid var(--border);height:44px;padding:2px;position:relative; }
+.cal-hour-cell:nth-child(8n) { border-right:none; }
+/* Agenda view */
+.cal-agenda { padding:1rem; }
+.cal-agenda-day { margin-bottom:1rem; }
+.cal-agenda-date { font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.4rem;padding:.3rem .5rem;background:var(--bg);border-radius:6px;display:flex;align-items:center;gap:.5rem; }
+.cal-agenda-date.today-row { background:#eff6ff;color:var(--accent); }
+.cal-agenda-events { display:flex;flex-direction:column;gap:.3rem;padding-left:.75rem; }
+.cal-agenda-event { display:flex;align-items:center;gap:.6rem;padding:.35rem .5rem;border-radius:7px;font-size:.8rem;cursor:pointer;transition:background .12s; }
+.cal-agenda-event:hover { background:var(--bg); }
+.cal-agenda-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.cal-agenda-title { flex:1;font-weight:500; }
+.cal-agenda-badge { font-size:.68rem;color:var(--text-3); }
+
+/* ══ Customer Portal ══ */
+.portal-admin-grid { display:grid;grid-template-columns:1fr 1fr;gap:1rem; }
+.portal-session-list { display:flex;flex-direction:column;gap:.5rem; }
+.portal-session-item { display:flex;align-items:center;gap:.75rem;padding:.6rem .8rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius); }
+.portal-session-avatar { width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0; }
+.portal-session-info { flex:1; }
+.portal-session-name { font-size:.83rem;font-weight:600; }
+.portal-session-sub { font-size:.72rem;color:var(--text-3); }
+.portal-session-actions { display:flex;gap:.3rem; }
+.portal-settings { display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0; }
+.portal-toggle { display:flex;align-items:center;justify-content:space-between;font-size:.85rem;color:var(--text);padding:.4rem 0;border-bottom:1px solid var(--border);cursor:pointer; }
+.portal-toggle:last-child { border-bottom:none; }
+.portal-toggle input[type=checkbox] { width:36px;height:20px;appearance:none;background:#cbd5e1;border-radius:999px;position:relative;cursor:pointer;transition:background .2s; }
+.portal-toggle input[type=checkbox]:checked { background:var(--accent); }
+.portal-toggle input[type=checkbox]::after { content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.portal-toggle input[type=checkbox]:checked::after { left:18px; }
+.portal-link-result { margin-top:.75rem; }
+.portal-link-box { display:flex;gap:.4rem; }
+.portal-link-input { flex:1;padding:.5rem .7rem;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-size:.8rem;font-family:var(--mono); }
+/* Inline portal view */
+.customer-portal-view { position:fixed;inset:0;z-index:300;background:#f0f9ff;overflow-y:auto; }
+.portal-topbar { background:#0f172a;color:#e2e8f0;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between; }
+.portal-brand { font-weight:700;font-size:.95rem; }
+.portal-customer-name { font-size:.82rem;color:#94a3b8; }
+.portal-body { max-width:900px;margin:0 auto;padding:1.5rem; }
+.portal-section { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.portal-section-title { font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:.75rem;padding-bottom:.4rem;border-bottom:1px solid #e2e8f0; }
+.portal-close-btn { background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#e2e8f0;padding:.35rem .75rem;border-radius:6px;font-size:.8rem;cursor:pointer; }

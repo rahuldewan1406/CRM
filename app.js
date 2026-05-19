@@ -129,8 +129,10 @@ function switchTab(id) {
   q(id).classList.add('active');
   document.querySelector(`.tnav[data-tab="${id}"]`).classList.add('active');
   if (id==='projects') renderProjectViews();
-  if (id==='reports')  renderReport();
+  if (id==='reports')   renderReport();
   if (id==='documents') { syncDocDropdowns(); renderDocuments(); }
+  if (id==='calendar')  renderCalendar();
+  if (id==='portal-admin') renderPortalAdmin();
 }
 function switchProjectView(view) {
   document.querySelectorAll('.project-view').forEach(v=>v.classList.remove('active'));
@@ -765,6 +767,7 @@ function renderAll() {
   syncDocDropdowns();
   renderDocuments();
   if (q('reportBody')) renderReport();
+  renderPortalAdmin();
   renderHealthScores();
   renderNotifBell();
   renderNotifPanel();
@@ -1200,6 +1203,7 @@ q('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long
 requestNotifPermission();
 runNotifScan();
 setInterval(runNotifScan, 5 * 60 * 1000);
+checkPortalToken();
 
 // ══════════════════════════════════════════════════════════════════
 //  FEATURE 1: REPORTS & CSV/PDF EXPORT
@@ -2036,5 +2040,509 @@ function getHealthBadge(contactId) {
   const h = state.contacts.find(c=>c.id===contactId)?._health;
   if (!h) return '';
   return `<span class="health-badge health-${h.grade}" title="Health Score: ${h.score}/100">${h.grade} ${h.score}</span>`;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 7: BULK ACTIONS
+// ══════════════════════════════════════════════════════════════════
+
+const _bulkSelected = { contacts: new Set(), leads: new Set(), tickets: new Set() };
+
+function toggleBulkSelect(collection, id, checked) {
+  if (checked) _bulkSelected[collection].add(id);
+  else _bulkSelected[collection].delete(id);
+  updateBulkBar(collection);
+}
+
+function toggleSelectAll(collection, checked) {
+  const items = { contacts: state.contacts, leads: state.leads, tickets: state.tickets }[collection] || [];
+  _bulkSelected[collection].clear();
+  if (checked) items.forEach(i => _bulkSelected[collection].add(i.id));
+  updateBulkBar(collection);
+  // Re-render to update checkboxes
+  if (collection === 'contacts') renderContactList(state.contacts);
+  if (collection === 'leads') renderSales();
+  if (collection === 'tickets') renderTickets();
+}
+
+function updateBulkBar(collection) {
+  const count = _bulkSelected[collection].size;
+  const barMap = { contacts:'bulkContactBar', leads:'bulkLeadBar', tickets:'bulkTicketBar' };
+  const cntMap = { contacts:'bulkContactCount', leads:'bulkLeadCount', tickets:'bulkTicketCount' };
+  const bar = q(barMap[collection]);
+  const cnt = q(cntMap[collection]);
+  if (!bar) return;
+  if (count > 0) { bar.classList.remove('hidden'); if(cnt) cnt.textContent = `${count} selected`; }
+  else bar.classList.add('hidden');
+}
+
+function clearBulkSelection(collection) {
+  _bulkSelected[collection].clear();
+  const allCb = q('selectAllContacts');
+  if (allCb) allCb.checked = false;
+  updateBulkBar(collection);
+  if (collection === 'contacts') renderContactList(state.contacts);
+  if (collection === 'leads') renderSales();
+  if (collection === 'tickets') renderTickets();
+}
+
+// Bulk Email
+function bulkEmail(collection) {
+  const ids = [..._bulkSelected[collection]];
+  if (!ids.length) return;
+  const items = state[collection].filter(i => ids.includes(i.id));
+  const emails = items.map(i => i.email || i.contact_email).filter(Boolean);
+  q('bulkEmailCount').textContent = `Sending to ${ids.length} contacts (${emails.length} with email addresses).`;
+  openModal('bulkEmailModal');
+}
+
+async function sendBulkEmail() {
+  const ids = [..._bulkSelected.contacts];
+  const contacts = state.contacts.filter(c => ids.includes(c.id));
+  const subject = q('bulkEmailSubject').value.trim();
+  const body    = q('bulkEmailBody').value.trim();
+  const errEl   = q('bulkEmailError');
+  const btn     = q('sendBulkBtn');
+  if (!subject) { if(errEl) errEl.textContent='Subject is required.'; return; }
+  if (!body)    { if(errEl) errEl.textContent='Message body is required.'; return; }
+  if (errEl) errEl.textContent='';
+
+  let sent = 0, failed = 0;
+  if (btn) { btn.disabled=true; btn.textContent='Sending…'; }
+
+  for (const contact of contacts) {
+    if (!contact.email) continue;
+    const personalised = {
+      recipients: [contact.email],
+      subject: subject.replace(/\{\{name\}\}/g, contact.name).replace(/\{\{company\}\}/g, contact.company||''),
+      body: body.replace(/\{\{name\}\}/g, contact.name).replace(/\{\{company\}\}/g, contact.company||''),
+    };
+    try {
+      const r = await fetch(`${SMTP_API}/api/send-email`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(personalised) });
+      if (r.ok) sent++; else failed++;
+    } catch { failed++; }
+  }
+
+  if (btn) { btn.disabled=false; btn.textContent='Send to All'; }
+  closeModal('bulkEmailModal');
+  pushNotif(`Bulk Email Sent`, `${sent} sent, ${failed} failed.`, '📧', sent>0?'success':'warning');
+  clearBulkSelection('contacts');
+}
+
+// Bulk Export
+function bulkExport(collection) {
+  const ids = [..._bulkSelected[collection]];
+  const items = state[collection].filter(i => ids.includes(i.id));
+  const cfg = { contacts:{h:['Name','Email','Phone','Company','Location'],r:c=>[c.name,c.email,c.phone||'',c.company||'',c.location||'']}, leads:{h:['Title','Stage','Value'],r:l=>[l.title,l.stage,l.value]}, tickets:{h:['Title','Status','Priority'],r:t=>[t.title,t.status,t.priority]} }[collection];
+  if (!cfg) return;
+  const csv = [cfg.h, ...items.map(cfg.r)].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`crm-${collection}-export.csv`; a.click();
+  pushNotif(`Exported ${items.length} ${collection}`, 'CSV file downloaded.', '⬇', 'success');
+}
+
+// Bulk Delete
+async function bulkDelete(collection) {
+  const ids = [..._bulkSelected[collection]];
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} ${collection}? This cannot be undone.`)) return;
+  if (['contacts','leads','tickets'].includes(collection) && state.session) {
+    for (const id of ids) {
+      await apiFetch(`/${collection}/${id}`, { method:'DELETE' });
+    }
+    const r = await apiFetch(`/${collection}`);
+    if (r && r.ok) state[collection] = await r.json();
+  } else {
+    state[collection] = state[collection].filter(i => !ids.includes(i.id));
+    persistLocal();
+  }
+  clearBulkSelection(collection);
+  renderAll();
+  pushNotif(`Deleted ${ids.length} ${collection}`, '', '🗑', 'info');
+}
+
+// Bulk stage change
+function bulkUpdateStage() { openModal('bulkStageModal'); }
+
+async function confirmBulkStage() {
+  const ids = [..._bulkSelected.leads];
+  const newStage = q('bulkNewStage').value;
+  for (const id of ids) {
+    const lead = state.leads.find(l=>l.id===id);
+    if (lead && state.session && can('leads.update')) {
+      await apiUpdate('leads', id, { stage: newStage });
+      lead.stage = newStage;
+    } else if (lead) { lead.stage = newStage; }
+  }
+  if (state.session) { const r=await apiFetch('/leads'); if(r&&r.ok) state.leads=await r.json(); }
+  closeModal('bulkStageModal');
+  clearBulkSelection('leads');
+  renderAll();
+  pushNotif(`${ids.length} leads moved to ${newStage}`, '', '🔄', 'success');
+}
+
+// Bulk resolve tickets
+async function bulkResolveTickets() {
+  const ids = [..._bulkSelected.tickets];
+  for (const id of ids) {
+    const t = state.tickets.find(x=>x.id===id);
+    if (t && state.session && can('tickets.update')) {
+      await apiUpdate('tickets', id, { status:'Resolved' });
+      t.status = 'Resolved';
+    } else if (t) t.status = 'Resolved';
+  }
+  if (state.session) { const r=await apiFetch('/tickets'); if(r&&r.ok) state.tickets=await r.json(); }
+  clearBulkSelection('tickets');
+  renderAll();
+  pushNotif(`${ids.length} tickets resolved`, '', '✅', 'success');
+}
+
+// Inject checkboxes into list renders — patch renderContactList
+const _origRenderContactList = renderContactList;
+window.renderContactList = function(list) {
+  const canE=state.session&&can('contacts.update'), canD=state.session&&can('contacts.delete');
+  q('contactList').innerHTML = list.map(c=>`
+    <li>
+      <input type="checkbox" class="bulk-checkbox" ${_bulkSelected.contacts.has(c.id)?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" />
+      <div class="record-main">
+        <div class="record-name">${c.name} ${getHealthBadge(c.id)}</div>
+        <div class="record-sub">${c.company||''} · ${c.email} · ${c.location||''}</div>
+      </div>
+      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋</button>
+      ${actBtns('contacts',c.id,canE,canD)}
+    </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No contacts. Log in and add one.</li>';
+};
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 8: CALENDAR VIEW
+// ══════════════════════════════════════════════════════════════════
+
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth();  // 0-indexed
+let _calView  = 'month';
+
+function switchCalView(view) {
+  _calView = view;
+  document.querySelectorAll('.cal-view-btn').forEach(b=>b.classList.toggle('active', b.dataset.calview===view));
+  renderCalendar();
+}
+function calNav(dir) {
+  if (_calView === 'week') { _calWeekOffset = (_calWeekOffset||0) + dir; }
+  else { _calMonth += dir; if (_calMonth>11){_calMonth=0;_calYear++;} if(_calMonth<0){_calMonth=11;_calYear--;} }
+  renderCalendar();
+}
+let _calWeekOffset = 0;
+function calToday() { _calYear=new Date().getFullYear(); _calMonth=new Date().getMonth(); _calWeekOffset=0; renderCalendar(); }
+
+// Build unified event list for a date
+function getCalEvents() {
+  const events = [];
+  const now = new Date();
+
+  state.tasks.filter(t=>t.dueDate).forEach(t => events.push({ date:t.dueDate, title:t.title, type:'task', obj:t }));
+  state.milestones.filter(m=>m.date).forEach(m => events.push({ date:m.date, title:m.name, type:'milestone', obj:m }));
+  state.accounts.filter(a=>a.renewalDate).forEach(a => events.push({ date:a.renewalDate, title:`Renewal: ${a.name}`, type:'renewal', obj:a }));
+  state.reminders.filter(r=>!r.dismissed&&r.datetime).forEach(r => events.push({ date:r.datetime.slice(0,10), title:r.title, type:'reminder', obj:r }));
+  state.activities.filter(a=>a.created_at).forEach(a => events.push({ date:a.created_at.slice(0,10), title:`${a.type}: ${a.note.slice(0,30)}`, type:'activity', obj:a }));
+
+  return events;
+}
+
+function renderCalendar() {
+  const wrap = q('calendarWrap');
+  if (!wrap) return;
+
+  const label = q('calMonthLabel');
+  const now   = new Date();
+  const events = getCalEvents();
+
+  if (_calView === 'month') {
+    const firstDay = new Date(_calYear, _calMonth, 1);
+    const lastDay  = new Date(_calYear, _calMonth+1, 0);
+    if (label) label.textContent = firstDay.toLocaleString('en-IN',{month:'long',year:'numeric'});
+
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let html = `<div class="cal-grid">${days.map(d=>`<div class="cal-dow">${d}</div>`).join('')}`;
+
+    // Pad start
+    let d = new Date(firstDay);
+    d.setDate(d.getDate() - d.getDay());
+
+    for (let row=0; row<6; row++) {
+      for (let col=0; col<7; col++) {
+        const dateStr = d.toISOString().slice(0,10);
+        const isThisMonth = d.getMonth()===_calMonth;
+        const isToday = d.toDateString()===now.toDateString();
+        const dayEvents = events.filter(e=>e.date===dateStr);
+
+        html += `<div class="cal-cell${!isThisMonth?' other-month':''}${isToday?' today':''}">
+          <div class="cal-day-num">${d.getDate()}</div>
+          ${dayEvents.slice(0,3).map(e=>`<div class="cal-event cal-event-${e.type}" title="${e.title}">${e.title}</div>`).join('')}
+          ${dayEvents.length>3?`<div class="cal-more">+${dayEvents.length-3} more</div>`:''}
+        </div>`;
+        d.setDate(d.getDate()+1);
+      }
+      if (d > lastDay && row >= 4) break;
+    }
+    html += '</div>';
+    wrap.innerHTML = html;
+
+  } else if (_calView === 'week') {
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + (_calWeekOffset*7));
+    if (label) label.textContent = `Week of ${weekStart.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+
+    const weekDays = Array.from({length:7},(_,i)=>{ const d=new Date(weekStart); d.setDate(d.getDate()+i); return d; });
+    const hours    = Array.from({length:24},(_,i)=>i);
+
+    let html = `<div class="cal-week-header">
+      <div class="cal-week-dow" style="background:var(--bg)"></div>
+      ${weekDays.map(d=>`<div class="cal-week-dow${d.toDateString()===now.toDateString()?' today-col':''}">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]}<br><strong>${d.getDate()}</strong></div>`).join('')}
+    </div><div class="cal-week-grid">`;
+
+    hours.forEach(h => {
+      html += `<div class="cal-hour-label">${h.toString().padStart(2,'0')}:00</div>`;
+      weekDays.forEach(d => {
+        const dateStr = d.toISOString().slice(0,10);
+        const cellEvents = events.filter(e=>e.date===dateStr);
+        html += `<div class="cal-hour-cell">${h===9?cellEvents.map(e=>`<div class="cal-event cal-event-${e.type}" style="font-size:.65rem">${e.title.slice(0,18)}</div>`).join(''):''}</div>`;
+      });
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+
+  } else { // agenda
+    if (label) label.textContent = 'Next 30 Days';
+    const agendaEvents = {};
+    const start = new Date(now);
+    for (let i=0; i<30; i++) {
+      const d = new Date(start); d.setDate(d.getDate()+i);
+      const ds = d.toISOString().slice(0,10);
+      const dayEv = events.filter(e=>e.date===ds);
+      if (dayEv.length) agendaEvents[ds] = dayEv;
+    }
+    const typeColors = {task:'#2563eb',milestone:'#7c3aed',renewal:'#e11d48',reminder:'#d97706',activity:'#0d9488'};
+    const entries = Object.entries(agendaEvents);
+    let html = '<div class="cal-agenda">';
+    if (!entries.length) { html += '<p style="color:var(--text-3);font-size:.9rem;padding:1rem">No events in the next 30 days.</p>'; }
+    else entries.forEach(([ds, evts]) => {
+      const d = new Date(ds);
+      const isToday = d.toDateString()===now.toDateString();
+      html += `<div class="cal-agenda-day">
+        <div class="cal-agenda-date${isToday?' today-row':''}">
+          ${isToday?'📍 Today — ':''}${d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+        </div>
+        <div class="cal-agenda-events">
+          ${evts.map(e=>`<div class="cal-agenda-event">
+            <div class="cal-agenda-dot" style="background:${typeColors[e.type]}"></div>
+            <span class="cal-agenda-title">${e.title}</span>
+            <span class="cal-agenda-badge">${e.type}</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 9: CUSTOMER PORTAL
+// ══════════════════════════════════════════════════════════════════
+
+state.portalSessions = JSON.parse(localStorage.getItem('crm_portal_sessions') || '[]');
+state.portalSettings = JSON.parse(localStorage.getItem('crm_portal_settings') || '{"showProjects":true,"showTickets":true,"showDocs":true,"showActivity":false}');
+
+function savePortalState() {
+  localStorage.setItem('crm_portal_sessions', JSON.stringify(state.portalSessions));
+  localStorage.setItem('crm_portal_settings', JSON.stringify(state.portalSettings));
+}
+
+function savePortalSettings() {
+  state.portalSettings.showProjects = q('ptShowProjects')?.checked;
+  state.portalSettings.showTickets  = q('ptShowTickets')?.checked;
+  state.portalSettings.showDocs     = q('ptShowDocs')?.checked;
+  state.portalSettings.showActivity = q('ptShowActivity')?.checked;
+  savePortalState();
+}
+
+function renderPortalAdmin() {
+  // Sync portal contact dropdown
+  const sel = q('portalContactSelect');
+  if (sel) sel.innerHTML = '<option value="">— Select —</option>' + state.contacts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  // Load settings toggles
+  if (q('ptShowProjects')) q('ptShowProjects').checked = state.portalSettings.showProjects !== false;
+  if (q('ptShowTickets'))  q('ptShowTickets').checked  = state.portalSettings.showTickets  !== false;
+  if (q('ptShowDocs'))     q('ptShowDocs').checked     = state.portalSettings.showDocs     !== false;
+  if (q('ptShowActivity')) q('ptShowActivity').checked = state.portalSettings.showActivity === true;
+
+  // Session list
+  const list = q('portalSessionList');
+  if (!list) return;
+  const active = state.portalSessions.filter(s=>new Date(s.expiresAt)>new Date());
+  if (!active.length) { list.innerHTML='<div style="color:var(--text-3);font-size:.82rem;padding:.5rem">No active portal sessions. Generate a link to give a customer access.</div>'; return; }
+  list.innerHTML = active.map(s => {
+    const c = state.contacts.find(x=>x.id===s.contactId);
+    const exp = new Date(s.expiresAt);
+    const days = Math.ceil((exp-new Date())/86400000);
+    return `<div class="portal-session-item">
+      <div class="portal-session-avatar">${c?.name?.charAt(0)||'?'}</div>
+      <div class="portal-session-info">
+        <div class="portal-session-name">${c?.name||'Unknown'}</div>
+        <div class="portal-session-sub">Expires in ${days} day${days!==1?'s':''} · Token: ${s.token.slice(0,8)}…</div>
+      </div>
+      <div class="portal-session-actions">
+        <button class="btn-secondary-sm" style="font-size:.72rem" onclick="openPortal('${s.token}')">👁 Preview</button>
+        <button class="btn-secondary-sm" style="font-size:.72rem;color:var(--rose)" onclick="revokePortal('${s.token}')">Revoke</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function generatePortalLink() {
+  const contactId = q('portalContactSelect')?.value;
+  const expiryDays = Number(q('portalExpiry')?.value || 30);
+  if (!contactId) { alert('Please select a contact.'); return; }
+  const token     = btoa(`${contactId}:${Date.now()}:${Math.random().toString(36).slice(2)}`).replace(/=/g,'');
+  const expiresAt = new Date(Date.now() + expiryDays*86400000).toISOString();
+  const session   = { token, contactId, expiresAt, createdAt: new Date().toISOString() };
+  state.portalSessions.push(session);
+  savePortalState();
+
+  const url = `${window.location.origin}${window.location.pathname}?portal=${token}`;
+  const input = q('portalLinkUrl');
+  if (input) input.value = url;
+  q('portalLinkResult')?.classList.remove('hidden');
+  renderPortalAdmin();
+  pushNotif('Portal link generated', `Shared with ${state.contacts.find(c=>c.id===contactId)?.name||'contact'} · expires in ${expiryDays}d`, '🔗', 'success');
+}
+
+function copyPortalLink() {
+  const input = q('portalLinkUrl');
+  if (!input) return;
+  navigator.clipboard.writeText(input.value).then(()=>pushNotif('Link copied!','Portal URL copied to clipboard.','📋','success'));
+}
+
+function revokePortal(token) {
+  if (!confirm('Revoke this portal session?')) return;
+  state.portalSessions = state.portalSessions.filter(s=>s.token!==token);
+  savePortalState();
+  renderPortalAdmin();
+  pushNotif('Portal session revoked','Customer no longer has access.','🔒','info');
+}
+
+function openPortal(token) {
+  const session = state.portalSessions.find(s=>s.token===token);
+  if (!session || new Date(session.expiresAt)<new Date()) { alert('Session expired or invalid.'); return; }
+  renderPortalView(session.contactId);
+}
+
+function renderPortalView(contactId) {
+  const c   = state.contacts.find(x=>x.id===contactId);
+  if (!c) return;
+  const ps  = state.portalSettings;
+  const tickets  = state.tickets.filter(t=>t.contact_id===contactId);
+  const projects = state.projects.filter(p=>p.contactId===contactId);
+  const docs     = state.documents.filter(d=>d.projectId && state.projects.find(p=>p.id===d.projectId&&p.contactId===contactId));
+  const acts     = state.activities.filter(a=>a.contactId===contactId);
+
+  const projectsHTML = ps.showProjects !== false ? `
+    <div class="portal-section">
+      <div class="portal-section-title">📁 Your Projects</div>
+      ${projects.length ? projects.map(p=>`
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:.85rem">${p.name}</div>
+            <div style="font-size:.75rem;color:#64748b">${p.manager} · Due: ${fmtDate(p.dueDate)}</div>
+          </div>
+          <span class="${badgeClass(p.status)}">${p.status}</span>
+          <div style="width:80px">
+            <div style="background:#f1f5f9;border-radius:999px;height:6px"><div style="width:${p.progress||0}%;background:#2563eb;height:100%;border-radius:999px"></div></div>
+            <div style="font-size:.68rem;color:#94a3b8;text-align:right">${p.progress||0}%</div>
+          </div>
+        </div>`).join('')
+      : '<p style="color:#94a3b8;font-size:.82rem">No active projects.</p>'}
+    </div>` : '';
+
+  const ticketsHTML = ps.showTickets !== false ? `
+    <div class="portal-section">
+      <div class="portal-section-title">🎫 Your Support Tickets</div>
+      ${tickets.length ? tickets.map(t=>`
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.45rem 0;border-bottom:1px solid #f1f5f9">
+          <div style="flex:1;font-size:.83rem;font-weight:500">${t.title}</div>
+          <span class="${badgeClass(t.priority)}">${t.priority}</span>
+          <span class="${badgeClass(t.status)}">${t.status}</span>
+        </div>`).join('')
+      : '<p style="color:#94a3b8;font-size:.82rem">No support tickets.</p>'}
+    </div>` : '';
+
+  const docsHTML = ps.showDocs !== false ? `
+    <div class="portal-section">
+      <div class="portal-section-title">📎 Shared Documents</div>
+      ${docs.length ? docs.map(d=>`
+        <div style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid #f1f5f9">
+          <span style="font-size:1.1rem">${fileIcon(d.name)}</span>
+          <div style="flex:1;font-size:.82rem;font-weight:500">${d.name}</div>
+          <span style="font-size:.72rem;color:#94a3b8">${fmtSize(d.size)}</span>
+          <button style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:.72rem;padding:2px 8px;border-radius:5px;cursor:pointer" onclick="downloadDoc('${d.id}')">⬇</button>
+        </div>`).join('')
+      : '<p style="color:#94a3b8;font-size:.82rem">No documents shared.</p>'}
+    </div>` : '';
+
+  const actHTML = ps.showActivity ? `
+    <div class="portal-section">
+      <div class="portal-section-title">📋 Recent Activities</div>
+      ${acts.slice(0,5).map(a=>`<div style="font-size:.8rem;padding:.3rem 0;border-bottom:1px solid #f1f5f9"><strong>${a.type}</strong> — ${a.note.slice(0,80)}</div>`).join('')||'<p style="color:#94a3b8;font-size:.82rem">No activity yet.</p>'}
+    </div>` : '';
+
+  const portalHTML = `
+    <div class="customer-portal-view" id="portalView">
+      <div class="portal-topbar">
+        <div class="portal-brand">🏢 OrgCRM Customer Portal</div>
+        <div class="portal-customer-name">Welcome, ${c.name}</div>
+        <button class="portal-close-btn" onclick="closePortal()">✕ Close</button>
+      </div>
+      <div class="portal-body">
+        <div class="portal-section" style="background:linear-gradient(135deg,#eff6ff,#f0fdf4)">
+          <div style="display:flex;align-items:center;gap:1rem">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem">${c.name.charAt(0)}</div>
+            <div>
+              <div style="font-size:1.1rem;font-weight:800">${c.name}</div>
+              <div style="font-size:.82rem;color:#475569">${c.company||''} · ${c.email}</div>
+            </div>
+          </div>
+        </div>
+        ${projectsHTML}${ticketsHTML}${docsHTML}${actHTML}
+        <div style="text-align:center;padding:1rem;font-size:.75rem;color:#94a3b8">
+          Powered by OrgCRM · Read-only view · Data refreshed in real-time
+        </div>
+      </div>
+    </div>`;
+
+  const div = document.createElement('div');
+  div.id = 'portalOverlay';
+  div.innerHTML = portalHTML;
+  document.body.appendChild(div);
+}
+
+function closePortal() {
+  const el = document.getElementById('portalOverlay');
+  if (el) el.remove();
+}
+
+// Check URL for portal token on load
+function checkPortalToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('portal');
+  if (!token) return;
+  const session = state.portalSessions.find(s=>s.token===token);
+  if (session && new Date(session.expiresAt)>new Date()) {
+    // Show portal view fullscreen
+    setTimeout(()=>renderPortalView(session.contactId), 300);
+  }
 }
 
