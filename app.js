@@ -147,87 +147,119 @@ q('loginBtn').addEventListener('click', ()=>q('loginDialog').showModal());
 document.querySelectorAll('.tnav').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 q('mailForm').addEventListener('submit', sendMail);
 
-// Contact form
-q('contactForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  e.stopPropagation();
+// ── Individual save functions (called by onclick buttons, avoids dialog form submit issues) ──
+
+async function saveContact() {
   const errEl = q('contactFormError');
+  const btn   = q('saveContactBtn');
   if (errEl) errEl.textContent = '';
-  if (!state.session) {
-    if (errEl) errEl.textContent = 'You must be logged in to add contacts.';
-    else alert('Please log in first.');
-    return;
-  }
-  const name    = q('name').value.trim();
-  const email   = q('email').value.trim();
-  const phone   = q('phone').value.trim();
-  const company = q('company').value.trim();
-  if (!name || !email) {
-    if (errEl) errEl.textContent = 'Full Name and Primary Email are required.';
-    return;
-  }
-  if (!isEmail(email)) {
-    if (errEl) errEl.textContent = 'Please enter a valid email address.';
-    return;
-  }
-  const btn = q('saveContactBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  if (!state.session) { if(errEl) errEl.textContent='Please log in first.'; return; }
+  const name  = q('name').value.trim();
+  const email = q('email').value.trim();
+  if (!name)         { if(errEl) errEl.textContent='Full Name is required.'; return; }
+  if (!email)        { if(errEl) errEl.textContent='Primary Email is required.'; return; }
+  if (!isEmail(email)) { if(errEl) errEl.textContent='Enter a valid email address.'; return; }
+  if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
   const ok = await apiCreate('contacts', {
     name, email,
     secondaryEmail: q('secondaryEmail').value.trim(),
-    phone, company,
+    phone:    q('phone').value.trim(),
+    company:  q('company').value.trim(),
     gender:   q('gender').value,
-    age:      Number(q('age').value) || null,
+    age:      Number(q('age').value)||null,
     location: q('location').value.trim(),
   });
-  if (btn) { btn.disabled = false; btn.textContent = 'Save Contact'; }
+  if (btn) { btn.disabled=false; btn.textContent='Save Contact'; }
   if (ok) {
-    e.target.reset();
+    ['name','email','secondaryEmail','phone','company','age','location'].forEach(id=>{const el=q(id);if(el)el.value='';});
+    q('gender').value='';
     closeModal('contactModal');
     const r = await apiFetch('/contacts');
     if (r && r.ok) state.contacts = await r.json();
     renderAll();
   } else {
-    if (errEl) errEl.textContent = 'Failed to save. Check that the API server is running on port 3002.';
+    if (errEl) errEl.textContent='Save failed — is the API server running on port 3002?';
   }
-});
-
-// Lead form
-q('leadForm').addEventListener('submit', async e => {
-  e.preventDefault(); e.stopPropagation();
-  if (!state.session) { alert('Please log in first.'); return; }
-  const title = q('leadName').value.trim();
-  const value = Number(q('leadValue').value);
-  if (!title) { alert('Lead title is required.'); return; }
-  const ok = await apiCreate('leads', { title, stage:q('leadStage').value, value, contactId:q('leadContact').value||null });
-  if (ok) { e.target.reset(); closeModal('leadModal'); const r=await apiFetch('/leads'); if(r&&r.ok) state.leads=await r.json(); renderAll(); }
-});
-
-// Ticket form
-q('ticketForm').addEventListener('submit', async e => {
-  e.preventDefault(); e.stopPropagation();
-  if (!state.session) { alert('Please log in first.'); return; }
-  const title = q('ticketTitle').value.trim();
-  if (!title) { alert('Ticket title is required.'); return; }
-  const ok = await apiCreate('tickets', { title, priority:q('ticketPriority').value, status:q('ticketStatus').value, contactId:q('ticketContact').value||null });
-  if (ok) { e.target.reset(); closeModal('ticketModal'); const r=await apiFetch('/tickets'); if(r&&r.ok) state.tickets=await r.json(); renderAll(); }
-});
-
-// Local-storage forms
-function localForm(id, buildFn, saveKey, collection, closeId) {
-  q(id).addEventListener('submit', e => {
-    e.preventDefault();
-    state[collection].push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), ...buildFn() });
-    persistLocal(); e.target.reset(); if(closeId) closeModal(closeId); renderAll();
-  });
 }
 
-localForm('accountForm', ()=>({ name:q('accountName').value.trim(), tier:q('accountTier').value, renewalDate:q('renewalDate').value }), 'crm_accounts', 'accounts', 'accountModal');
-localForm('opportunityForm', ()=>({ name:q('oppName').value.trim(), value:Number(q('oppValue').value), probability:Number(q('oppProbability').value) }), 'crm_opps', 'opportunities', 'oppModal');
-localForm('projectForm', ()=>({ name:q('projectName').value.trim(), status:q('projectStatus').value, priority:q('projectPriority').value, manager:q('projectManager').value.trim(), startDate:q('projectStartDate').value, dueDate:q('projectDueDate').value, budget:Number(q('projectBudget').value||0), contactId:q('projectContact').value||null, description:q('projectDesc').value.trim(), progress:0 }), 'crm_projects', 'projects', 'projectModal');
-localForm('taskForm', ()=>({ title:q('taskTitle').value.trim(), projectId:q('taskProject').value||null, assignee:q('taskAssignee').value.trim(), status:q('taskStatus').value, priority:q('taskPriority').value, dueDate:q('taskDueDate').value }), 'crm_tasks', 'tasks', 'taskModal');
-localForm('milestoneForm', ()=>({ name:q('milestoneName').value.trim(), projectId:q('milestoneProject').value||null, date:q('milestoneDate').value, status:q('milestoneStatus').value }), 'crm_milestones', 'milestones', 'milestoneModal');
-localForm('activityForm', ()=>({ type:q('activityType').value, note:q('activityNote').value.trim(), contactId:q('activityContact').value||null }), 'crm_activities', 'activities', 'activityModal');
+async function saveLead() {
+  const title = q('leadName').value.trim();
+  if (!title) { alert('Lead title is required.'); return; }
+  if (!state.session) { alert('Please log in first.'); return; }
+  const ok = await apiCreate('leads', { title, stage:q('leadStage').value, value:Number(q('leadValue').value)||0, contactId:q('leadContact').value||null });
+  if (ok) {
+    ['leadName','leadValue'].forEach(id=>{const el=q(id);if(el)el.value='';});
+    q('leadStage').value='New'; q('leadContact').value='';
+    closeModal('leadModal');
+    const r=await apiFetch('/leads'); if(r&&r.ok) state.leads=await r.json();
+    renderAll();
+  }
+}
+
+async function saveTicket() {
+  const title = q('ticketTitle').value.trim();
+  if (!title) { alert('Ticket title is required.'); return; }
+  if (!state.session) { alert('Please log in first.'); return; }
+  const ok = await apiCreate('tickets', { title, priority:q('ticketPriority').value, status:q('ticketStatus').value, contactId:q('ticketContact').value||null });
+  if (ok) {
+    q('ticketTitle').value=''; q('ticketContact').value='';
+    closeModal('ticketModal');
+    const r=await apiFetch('/tickets'); if(r&&r.ok) state.tickets=await r.json();
+    renderAll();
+  }
+}
+
+function saveAccount() {
+  const name = q('accountName').value.trim();
+  if (!name) { alert('Account name is required.'); return; }
+  state.accounts.push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), name, tier:q('accountTier').value, renewalDate:q('renewalDate').value });
+  q('accountName').value=''; q('renewalDate').value='';
+  persistLocal(); closeModal('accountModal'); renderAll();
+}
+
+function saveOpportunity() {
+  const name = q('oppName').value.trim();
+  if (!name) { alert('Opportunity name is required.'); return; }
+  state.opportunities.push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), name, value:Number(q('oppValue').value)||0, probability:Number(q('oppProbability').value) });
+  q('oppName').value=''; q('oppValue').value='';
+  persistLocal(); closeModal('oppModal'); renderAll();
+}
+
+function saveProject() {
+  const name = q('projectName').value.trim();
+  const mgr  = q('projectManager').value.trim();
+  if (!name) { alert('Project name is required.'); return; }
+  if (!mgr)  { alert('Project manager is required.'); return; }
+  state.projects.push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), name, status:q('projectStatus').value, priority:q('projectPriority').value, manager:mgr, startDate:q('projectStartDate').value, dueDate:q('projectDueDate').value, budget:Number(q('projectBudget').value||0), contactId:q('projectContact').value||null, description:q('projectDesc').value.trim(), progress:0 });
+  ['projectName','projectManager','projectStartDate','projectDueDate','projectBudget','projectDesc'].forEach(id=>{const el=q(id);if(el)el.value='';});
+  persistLocal(); closeModal('projectModal'); renderAll();
+}
+
+function saveTask() {
+  const title = q('taskTitle').value.trim();
+  if (!title) { alert('Task title is required.'); return; }
+  state.tasks.push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), title, projectId:q('taskProject').value||null, assignee:q('taskAssignee').value.trim(), status:q('taskStatus').value, priority:q('taskPriority').value, dueDate:q('taskDueDate').value });
+  ['taskTitle','taskAssignee','taskDueDate'].forEach(id=>{const el=q(id);if(el)el.value='';});
+  persistLocal(); closeModal('taskModal'); renderAll();
+}
+
+function saveMilestone() {
+  const name = q('milestoneName').value.trim();
+  const date = q('milestoneDate').value;
+  if (!name) { alert('Milestone name is required.'); return; }
+  if (!date) { alert('Target date is required.'); return; }
+  state.milestones.push({ id:crypto.randomUUID(), created_at:new Date().toISOString(), name, projectId:q('milestoneProject').value||null, date, status:q('milestoneStatus').value });
+  q('milestoneName').value=''; q('milestoneDate').value='';
+  persistLocal(); closeModal('milestoneModal'); renderAll();
+}
+
+function saveActivity() {
+  const note = q('activityNote').value.trim();
+  if (!note) { alert('Activity note is required.'); return; }
+  state.activities.unshift({ id:crypto.randomUUID(), created_at:new Date().toISOString(), type:q('activityType').value, note, contactId:q('activityContact').value||null });
+  q('activityNote').value=''; q('activityContact').value='';
+  persistLocal(); closeModal('activityModal'); renderAll();
+}
 
 // ── Session & Role ────────────────────────────────────────────────────────────
 function renderSession() {

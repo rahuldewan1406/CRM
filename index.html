@@ -348,8 +348,8 @@
   <dialog id="loginDialog" class="modal-dialog">
     <div class="modal-header"><h3>Sign In to OrgCRM</h3><button class="modal-close" onclick="this.closest('dialog').close()">✕</button></div>
     <form id="loginForm" class="modal-body">
-      <label>Email<input id="loginEmail" type="email" placeholder="admin@crm.local" required /></label>
-      <label>Password<input id="loginPassword" type="password" placeholder="••••••••" required /></label>
+      <label>Email<input id="loginEmail" type="email" placeholder="admin@crm.local" /></label>
+      <label>Password<input id="loginPassword" type="password" placeholder="••••••••" /></label>
       <p class="hint-text">Default: admin@crm.local / admin123 · API on port 3002</p>
       <button type="submit" class="btn-modal-primary">Sign In</button>
       <p id="loginStatus" class="form-error"></p>
@@ -359,33 +359,33 @@
   <!-- Contact Modal -->
   <dialog id="contactModal" class="modal-dialog">
     <div class="modal-header"><h3>New Contact</h3><button class="modal-close" onclick="closeModal('contactModal')">✕</button></div>
-    <form id="contactForm" class="modal-body modal-grid">
-      <label class="span2">Full Name<input id="name" placeholder="Jane Doe" required /></label>
-      <label>Primary Email<input id="email" type="email" placeholder="jane@company.com" required /></label>
+    <div class="modal-body modal-grid">
+      <label class="span2">Full Name *<input id="name" placeholder="Jane Doe" /></label>
+      <label>Primary Email *<input id="email" type="email" placeholder="jane@company.com" /></label>
       <label>Secondary Email<input id="secondaryEmail" placeholder="optional" /></label>
-      <label>Phone<input id="phone" placeholder="+91 98765 43210" required /></label>
-      <label>Company<input id="company" placeholder="Acme Corp" required /></label>
+      <label>Phone<input id="phone" placeholder="+91 98765 43210" /></label>
+      <label>Company<input id="company" placeholder="Acme Corp" /></label>
       <label>Gender<select id="gender"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
-      <label>Age<input id="age" type="number" min="1" max="120" placeholder="30" required /></label>
-      <label class="span2">Location<input id="location" placeholder="Mumbai, India" required /></label>
+      <label>Age<input id="age" type="number" min="1" max="120" placeholder="30" /></label>
+      <label class="span2">Location<input id="location" placeholder="Mumbai, India" /></label>
+      <p id="contactFormError" class="span2" style="color:var(--rose);font-size:.8rem;min-height:1rem;margin:0"></p>
       <div class="modal-footer span2">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('contactModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary" id="saveContactBtn">Save Contact</button>
+        <button type="button" class="btn-modal-primary" id="saveContactBtn" onclick="saveContact()">Save Contact</button>
       </div>
-      <p id="contactFormError" style="color:var(--rose);font-size:.8rem;margin:.5rem 1.25rem 0;min-height:1rem"></p>
-    </form>
+    </div>
   </dialog>
 
   <!-- Account Modal -->
   <dialog id="accountModal" class="modal-dialog">
     <div class="modal-header"><h3>New Account</h3><button class="modal-close" onclick="closeModal('accountModal')">✕</button></div>
     <form id="accountForm" class="modal-body">
-      <label>Account Name<input id="accountName" placeholder="Acme Corp" required /></label>
+      <label>Account Name<input id="accountName" placeholder="Acme Corp" /></label>
       <label>Tier<select id="accountTier"><option>SMB</option><option>Mid-Market</option><option>Enterprise</option></select></label>
-      <label>Renewal Date<input id="renewalDate" type="date" required /></label>
+      <label>Renewal Date<input id="renewalDate" type="date" /></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('accountModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Add Account</button>
+        <button type="button" class="btn-modal-primary" onclick="saveAccount()">Add Account</button>
       </div>
     </form>
   </dialog>
@@ -394,13 +394,13 @@
   <dialog id="leadModal" class="modal-dialog">
     <div class="modal-header"><h3>New Lead</h3><button class="modal-close" onclick="closeModal('leadModal')">✕</button></div>
     <form id="leadForm" class="modal-body">
-      <label>Lead Title<input id="leadName" placeholder="Enterprise Deal – Acme" required /></label>
-      <label>Stage<select id="leadStage" required><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select></label>
-      <label>Value (₹)<input id="leadValue" type="number" min="0" placeholder="500000" required /></label>
+      <label>Lead Title<input id="leadName" placeholder="Enterprise Deal – Acme" /></label>
+      <label>Stage<select id="leadStage"><option>New</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select></label>
+      <label>Value (₹)<input id="leadValue" type="number" min="0" placeholder="500000" /></label>
       <label>Link to Contact<select id="leadContact"><option value="">— None —</option></select></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('leadModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Save Lead</button>
+        <button type="button" class="btn-modal-primary" onclick="saveLead()">Save Lead</button>
       </div>
     </form>
   </dialog>
@@ -409,12 +409,12 @@
   <dialog id="oppModal" class="modal-dialog">
     <div class="modal-header"><h3>New Opportunity</h3><button class="modal-close" onclick="closeModal('oppModal')">✕</button></div>
     <form id="opportunityForm" class="modal-body">
-      <label>Opportunity Name<input id="oppName" placeholder="Q3 Expansion – Acme" required /></label>
-      <label>Deal Value (₹)<input id="oppValue" type="number" min="0" placeholder="1000000" required /></label>
+      <label>Opportunity Name<input id="oppName" placeholder="Q3 Expansion – Acme" /></label>
+      <label>Deal Value (₹)<input id="oppValue" type="number" min="0" placeholder="1000000" /></label>
       <label>Probability<select id="oppProbability"><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="90">90%</option></select></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('oppModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Add Opportunity</button>
+        <button type="button" class="btn-modal-primary" onclick="saveOpportunity()">Add Opportunity</button>
       </div>
     </form>
   </dialog>
@@ -423,10 +423,10 @@
   <dialog id="projectModal" class="modal-dialog modal-lg">
     <div class="modal-header"><h3>New Project</h3><button class="modal-close" onclick="closeModal('projectModal')">✕</button></div>
     <form id="projectForm" class="modal-body modal-grid">
-      <label class="span2">Project Name<input id="projectName" placeholder="Website Redesign" required /></label>
+      <label class="span2">Project Name<input id="projectName" placeholder="Website Redesign" /></label>
       <label>Status<select id="projectStatus"><option>Planning</option><option>Active</option><option>On Hold</option><option>Completed</option></select></label>
       <label>Priority<select id="projectPriority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
-      <label>Project Manager<input id="projectManager" placeholder="Rahul Dewan" required /></label>
+      <label>Project Manager<input id="projectManager" placeholder="Rahul Dewan" /></label>
       <label>Start Date<input id="projectStartDate" type="date" /></label>
       <label>Due Date<input id="projectDueDate" type="date" /></label>
       <label>Budget (₹)<input id="projectBudget" type="number" min="0" placeholder="0" /></label>
@@ -434,7 +434,7 @@
       <label class="span2">Description<textarea id="projectDesc" rows="3" placeholder="Project scope and objectives…"></textarea></label>
       <div class="modal-footer span2">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('projectModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Create Project</button>
+        <button type="button" class="btn-modal-primary" onclick="saveProject()">Create Project</button>
       </div>
     </form>
   </dialog>
@@ -443,7 +443,7 @@
   <dialog id="taskModal" class="modal-dialog">
     <div class="modal-header"><h3>New Task</h3><button class="modal-close" onclick="closeModal('taskModal')">✕</button></div>
     <form id="taskForm" class="modal-body">
-      <label>Task Title<input id="taskTitle" placeholder="Design mockups" required /></label>
+      <label>Task Title<input id="taskTitle" placeholder="Design mockups" /></label>
       <label>Project<select id="taskProject"><option value="">— None —</option></select></label>
       <label>Assigned To<input id="taskAssignee" placeholder="Team member name" /></label>
       <label>Status<select id="taskStatus"><option>To Do</option><option>In Progress</option><option>Done</option><option>Blocked</option></select></label>
@@ -451,7 +451,7 @@
       <label>Due Date<input id="taskDueDate" type="date" /></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('taskModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Create Task</button>
+        <button type="button" class="btn-modal-primary" onclick="saveTask()">Create Task</button>
       </div>
     </form>
   </dialog>
@@ -460,13 +460,13 @@
   <dialog id="milestoneModal" class="modal-dialog">
     <div class="modal-header"><h3>New Milestone</h3><button class="modal-close" onclick="closeModal('milestoneModal')">✕</button></div>
     <form id="milestoneForm" class="modal-body">
-      <label>Milestone Name<input id="milestoneName" placeholder="MVP Launch" required /></label>
+      <label>Milestone Name<input id="milestoneName" placeholder="MVP Launch" /></label>
       <label>Project<select id="milestoneProject"><option value="">— None —</option></select></label>
-      <label>Target Date<input id="milestoneDate" type="date" required /></label>
+      <label>Target Date<input id="milestoneDate" type="date" /></label>
       <label>Status<select id="milestoneStatus"><option>Upcoming</option><option>Achieved</option><option>Missed</option></select></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('milestoneModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Add Milestone</button>
+        <button type="button" class="btn-modal-primary" onclick="saveMilestone()">Add Milestone</button>
       </div>
     </form>
   </dialog>
@@ -476,11 +476,11 @@
     <div class="modal-header"><h3>Log Activity</h3><button class="modal-close" onclick="closeModal('activityModal')">✕</button></div>
     <form id="activityForm" class="modal-body">
       <label>Type<select id="activityType"><option>Call</option><option>Meeting</option><option>Demo</option><option>Follow-up</option><option>Email</option><option>Note</option></select></label>
-      <label>Note<textarea id="activityNote" rows="3" placeholder="Activity details…" required></textarea></label>
+      <label>Note<textarea id="activityNote" rows="3" placeholder="Activity details…"></textarea></label>
       <label>Link to Contact<select id="activityContact"><option value="">— None —</option></select></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('activityModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Log Activity</button>
+        <button type="button" class="btn-modal-primary" onclick="saveActivity()">Log Activity</button>
       </div>
     </form>
   </dialog>
@@ -489,13 +489,13 @@
   <dialog id="ticketModal" class="modal-dialog">
     <div class="modal-header"><h3>New Ticket</h3><button class="modal-close" onclick="closeModal('ticketModal')">✕</button></div>
     <form id="ticketForm" class="modal-body">
-      <label>Title<input id="ticketTitle" placeholder="Login page broken on mobile" required /></label>
+      <label>Title<input id="ticketTitle" placeholder="Login page broken on mobile" /></label>
       <label>Priority<select id="ticketPriority"><option>Low</option><option>Medium</option><option>High</option></select></label>
       <label>Status<select id="ticketStatus"><option>Open</option><option>In Progress</option><option>Resolved</option></select></label>
       <label>Link to Contact<select id="ticketContact"><option value="">— None —</option></select></label>
       <div class="modal-footer">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('ticketModal')">Cancel</button>
-        <button type="submit" class="btn-modal-primary">Create Ticket</button>
+        <button type="button" class="btn-modal-primary" onclick="saveTicket()">Create Ticket</button>
       </div>
     </form>
   </dialog>
