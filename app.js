@@ -154,25 +154,25 @@ async function saveContact() {
   const btn   = q('saveContactBtn');
   if (errEl) errEl.textContent = '';
   if (!state.session) { if(errEl) errEl.textContent='Please log in first.'; return; }
-  const name  = q('name').value.trim();
-  const email = q('email').value.trim();
+  const name  = q('c_name').value.trim();
+  const email = q('c_email').value.trim();
   if (!name)         { if(errEl) errEl.textContent='Full Name is required.'; return; }
   if (!email)        { if(errEl) errEl.textContent='Primary Email is required.'; return; }
   if (!isEmail(email)) { if(errEl) errEl.textContent='Enter a valid email address.'; return; }
   if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
   const ok = await apiCreate('contacts', {
     name, email,
-    secondaryEmail: q('secondaryEmail').value.trim(),
-    phone:    q('phone').value.trim(),
-    company:  q('company').value.trim(),
-    gender:   q('gender').value,
-    age:      Number(q('age').value)||null,
-    location: q('location').value.trim(),
+    secondaryEmail: q('c_secEmail').value.trim(),
+    phone:    q('c_phone').value.trim(),
+    company:  q('c_company').value.trim(),
+    gender:   q('c_gender').value,
+    age:      Number(q('c_age').value)||null,
+    location: q('c_location').value.trim(),
   });
   if (btn) { btn.disabled=false; btn.textContent='Save Contact'; }
   if (ok) {
-    ['name','email','secondaryEmail','phone','company','age','location'].forEach(id=>{const el=q(id);if(el)el.value='';});
-    q('gender').value='';
+    ['c_name','c_email','c_secEmail','c_phone','c_company','c_age','c_location'].forEach(id=>{const el=q(id);if(el)el.value='';});
+    q('c_gender').value='';
     closeModal('contactModal');
     const r = await apiFetch('/contacts');
     if (r && r.ok) state.contacts = await r.json();

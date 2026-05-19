@@ -360,14 +360,14 @@
   <dialog id="contactModal" class="modal-dialog">
     <div class="modal-header"><h3>New Contact</h3><button class="modal-close" onclick="closeModal('contactModal')">✕</button></div>
     <div class="modal-body modal-grid">
-      <label class="span2">Full Name *<input id="name" placeholder="Jane Doe" /></label>
-      <label>Primary Email *<input id="email" type="email" placeholder="jane@company.com" /></label>
-      <label>Secondary Email<input id="secondaryEmail" placeholder="optional" /></label>
-      <label>Phone<input id="phone" placeholder="+91 98765 43210" /></label>
-      <label>Company<input id="company" placeholder="Acme Corp" /></label>
-      <label>Gender<select id="gender"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
-      <label>Age<input id="age" type="number" min="1" max="120" placeholder="30" /></label>
-      <label class="span2">Location<input id="location" placeholder="Mumbai, India" /></label>
+      <label class="span2">Full Name *<input id="c_name" placeholder="Jane Doe" /></label>
+      <label>Primary Email *<input id="c_email" type="email" placeholder="jane@company.com" /></label>
+      <label>Secondary Email<input id="c_secEmail" placeholder="optional" /></label>
+      <label>Phone<input id="c_phone" placeholder="+91 98765 43210" /></label>
+      <label>Company<input id="c_company" placeholder="Acme Corp" /></label>
+      <label>Gender<select id="c_gender"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
+      <label>Age<input id="c_age" type="number" min="1" max="120" placeholder="30" /></label>
+      <label class="span2">Location<input id="c_location" placeholder="Mumbai, India" /></label>
       <p id="contactFormError" class="span2" style="color:var(--rose);font-size:.8rem;min-height:1rem;margin:0"></p>
       <div class="modal-footer span2">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('contactModal')">Cancel</button>
