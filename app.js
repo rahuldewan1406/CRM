@@ -161,8 +161,42 @@ const REPORT_CONFIG = {
 
 
 const q = id => document.getElementById(id);
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const isEmail  = a => EMAIL_RE.test(String(a).trim());
+const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isEmail   = a => EMAIL_RE.test(String(a).trim());
+
+// Phone validation — Indian mobile: 10 digits, starts with 6-9
+// Also accepts formats: +91-XXXXXXXXXX, +91 XXXXXXXXXX, 0XXXXXXXXXX
+const PHONE_RE  = /^(?:\+91[\s-]?)?(?:0)?([6-9]\d{9})$/;
+function isValidPhone(p) {
+  if (!p) return false;
+  const cleaned = String(p).replace(/[\s\-().]/g, '');
+  return PHONE_RE.test(cleaned);
+}
+function normalisePhoneDisplay(p) {
+  const cleaned = String(p||'').replace(/[\s\-().]/g, '');
+  const match = cleaned.match(/([6-9]\d{9})$/);
+  return match ? match[1] : p;
+}
+
+// Field-level error helper
+function setFieldError(inputId, message) {
+  const el = q(inputId);
+  if (!el) return;
+  el.style.borderColor = message ? '#e11d48' : '';
+  el.style.boxShadow   = message ? '0 0 0 3px rgba(225,29,72,.12)' : '';
+  // Find or create error span
+  let errSpan = el.parentElement?.querySelector('.field-err') || el.nextElementSibling;
+  if (!errSpan || !errSpan.classList?.contains('field-err')) {
+    errSpan = document.createElement('span');
+    errSpan.className = 'field-err';
+    errSpan.style.cssText = 'display:block;font-size:.72rem;color:#e11d48;margin-top:3px;font-weight:500';
+    el.insertAdjacentElement('afterend', errSpan);
+  }
+  errSpan.textContent = message || '';
+}
+function clearFieldErrors(...ids) {
+  ids.forEach(id => setFieldError(id, ''));
+}
 function can(p) { return state.permissions.has(p); }
 function fmtMoney(v) { return Number(v||0).toLocaleString('en-IN'); }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'; }
@@ -223,6 +257,33 @@ async function login(e) {
   const btnText = q('loginBtnText');
   const spinner = q('loginBtnSpinner');
   if (errEl) errEl.textContent = '';
+
+  // ── Login validation ──────────────────────────────────────────────
+  const loginEmail = q('loginEmail')?.value.trim() || '';
+  const loginPass  = q('loginPassword')?.value || '';
+  let loginValid = true;
+
+  if (!loginEmail) {
+    if (errEl) errEl.textContent = 'Email address is required.';
+    q('loginEmail')?.focus(); loginValid = false;
+  } else if (!isEmail(loginEmail)) {
+    if (errEl) errEl.textContent = 'Please enter a valid email address (e.g. user@nhai.gov.in).';
+    q('loginEmail')?.focus(); loginValid = false;
+  } else if (!loginPass) {
+    if (errEl) errEl.textContent = 'Password is required.';
+    q('loginPassword')?.focus(); loginValid = false;
+  } else if (loginPass.length < 6) {
+    if (errEl) errEl.textContent = 'Password must be at least 6 characters.';
+    q('loginPassword')?.focus(); loginValid = false;
+  }
+  if (!loginValid) {
+    // Shake the form
+    const form = q('loginForm');
+    if (form) { form.style.animation='none'; setTimeout(()=>form.style.animation='loginShake .4s ease',10); }
+    return;
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   if (btn)    { btn.disabled=true; }
   if (btnText)  btnText.classList.add('hidden');
   if (spinner)  spinner.classList.remove('hidden');
@@ -344,11 +405,53 @@ async function saveContact() {
   const btn   = q('saveContactBtn');
   if (errEl) errEl.textContent = '';
   if (!state.session) { if(errEl) errEl.textContent='Please log in first.'; return; }
-  const name  = q('c_name').value.trim();
-  const email = q('c_email').value.trim();
-  if (!name)         { if(errEl) errEl.textContent='Full Name is required.'; return; }
-  if (!email)        { if(errEl) errEl.textContent='Primary Email is required.'; return; }
-  if (!isEmail(email)) { if(errEl) errEl.textContent='Enter a valid email address.'; return; }
+
+  const name   = q('c_name').value.trim();
+  const email  = q('c_email').value.trim();
+  const phone  = q('c_phone').value.trim();
+  const secEmail = q('c_secEmail').value.trim();
+  const age    = q('c_age').value.trim();
+
+  // ── Contact field validation ──────────────────────────────────────
+  let valid = true; let firstError = '';
+
+  if (!name) {
+    firstError = firstError||'Full Name is required.';
+    valid = false;
+  } else if (name.length < 2) {
+    firstError = firstError||'Full Name must be at least 2 characters.';
+    valid = false;
+  }
+
+  if (!email) {
+    firstError = firstError||'Primary Email is required.';
+    valid = false;
+  } else if (!isEmail(email)) {
+    firstError = firstError||'Primary Email is not valid (e.g. name@company.com).';
+    valid = false;
+  }
+
+  if (secEmail && !isEmail(secEmail)) {
+    firstError = firstError||'Secondary Email is not valid.';
+    valid = false;
+  }
+
+  if (phone && !isValidPhone(phone)) {
+    firstError = firstError||'Mobile number must be 10 digits starting with 6–9 (e.g. 9876543210).';
+    valid = false;
+  }
+
+  if (age && (isNaN(Number(age)) || Number(age) < 1 || Number(age) > 120)) {
+    firstError = firstError||'Age must be between 1 and 120.';
+    valid = false;
+  }
+
+  if (!valid) {
+    if (errEl) errEl.textContent = firstError;
+    return;
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   if (btn) { btn.disabled=true; btn.textContent='Saving…'; }
   const ok = await apiCreate('contacts', {
     name, email,
@@ -1412,6 +1515,123 @@ async function checkLoginApiStatus() {
     if(dot)  dot.className='api-dot offline';
     if(text) text.textContent='API server offline — start with: node api-server.js';
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  REAL-TIME FIELD VALIDATION
+// ══════════════════════════════════════════════════════════════════
+
+// ── Login field real-time validation ─────────────────────────────
+function validateLoginField(fieldId) {
+  const el = q(fieldId);
+  if (!el) return;
+  const val = el.value.trim();
+
+  if (fieldId === 'loginEmail') {
+    const hint = q('loginEmailHint');
+    if (!val) {
+      el.classList.remove('field-ok','field-error');
+      if (hint) { hint.textContent=''; hint.className='login-field-hint'; }
+    } else if (!isEmail(val)) {
+      el.classList.remove('field-ok'); el.classList.add('field-error');
+      if (hint) { hint.textContent='⚠ Please enter a valid email address'; hint.className='login-field-hint error'; }
+    } else {
+      el.classList.remove('field-error'); el.classList.add('field-ok');
+      if (hint) { hint.textContent='✓ Valid email'; hint.className='login-field-hint ok'; }
+    }
+  }
+
+  if (fieldId === 'loginPassword') {
+    const wrap  = q('loginPasswordStrength');
+    const fill  = q('strengthFill');
+    const label = q('strengthLabel');
+    if (!val) {
+      if (wrap) wrap.classList.add('hidden');
+      el.classList.remove('field-ok','field-error');
+      return;
+    }
+    if (wrap) wrap.classList.remove('hidden');
+
+    // Password strength scoring
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+      { cls:'strength-weak',   label:'Weak',   width:'20%', color:'#e11d48' },
+      { cls:'strength-weak',   label:'Weak',   width:'20%', color:'#e11d48' },
+      { cls:'strength-fair',   label:'Fair',   width:'50%', color:'#d97706' },
+      { cls:'strength-good',   label:'Good',   width:'75%', color:'#0d9488' },
+      { cls:'strength-strong', label:'Strong', width:'100%',color:'#16a34a' },
+      { cls:'strength-strong', label:'Strong', width:'100%',color:'#16a34a' },
+    ];
+    const level = levels[Math.min(score, 5)];
+    if (wrap) wrap.className = `password-strength-wrap ${level.cls}`;
+    if (fill) { fill.style.width=level.width; fill.style.background=level.color; }
+    if (label) { label.textContent=level.label; label.style.color=level.color; }
+
+    if (val.length < 6) {
+      el.classList.remove('field-ok'); el.classList.add('field-error');
+    } else {
+      el.classList.remove('field-error'); el.classList.add('field-ok');
+    }
+  }
+}
+
+// ── Contact form real-time validation ─────────────────────────────
+function validateContactField(fieldId) {
+  const el = q(fieldId);
+  if (!el || !el.value.trim()) {
+    // Clear validation state if empty (optional fields OK empty)
+    el?.classList.remove('field-ok','field-error-input');
+    const next = el?.nextElementSibling;
+    if (next?.classList?.contains('contact-field-err')) next.textContent='';
+    return;
+  }
+
+  const val = el.value.trim();
+  let error = '';
+
+  if (fieldId === 'c_email' || fieldId === 'c_secEmail') {
+    if (!isEmail(val)) error = 'Enter a valid email (e.g. name@company.com)';
+  }
+  if (fieldId === 'c_phone') {
+    if (!isValidPhone(val)) {
+      error = 'Enter a valid 10-digit Indian mobile number (starts with 6–9)';
+    } else {
+      // Show normalised format
+      const normalised = normalisePhoneDisplay(val);
+      if (normalised !== val) el.value = normalised; // auto-format
+    }
+  }
+
+  // Apply visual state
+  if (error) {
+    el.classList.remove('field-ok'); el.classList.add('field-error-input');
+  } else {
+    el.classList.remove('field-error-input'); el.classList.add('field-ok');
+  }
+
+  // Show/hide inline error
+  let errSpan = el.nextElementSibling;
+  if (!errSpan || !errSpan.classList?.contains('contact-field-err')) {
+    errSpan = document.createElement('span');
+    errSpan.className = 'contact-field-err field-err';
+    el.insertAdjacentElement('afterend', errSpan);
+  }
+  errSpan.textContent = error;
+}
+
+// ── Phone formatter — auto-format on blur ─────────────────────────
+function formatPhoneOnBlur(inputId) {
+  const el = q(inputId);
+  if (!el || !el.value.trim()) return;
+  const normalised = normalisePhoneDisplay(el.value.trim());
+  if (normalised && /^[6-9]\d{9}$/.test(normalised)) el.value = normalised;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

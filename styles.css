@@ -1224,3 +1224,27 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
   .chat-sidebar.thread-open { display: none; }
   .chat-back-btn { display: block; }
 }
+
+/* ══ Field Validation Styles ══ */
+.field-err { display:block; font-size:.72rem; color:#e11d48; margin-top:3px; font-weight:500; min-height:.9rem; animation: fadeIn .15s ease; }
+.field-ok  { border-color: #16a34a !important; box-shadow: 0 0 0 3px rgba(22,163,74,.1) !important; }
+.field-error-input { border-color: #e11d48 !important; box-shadow: 0 0 0 3px rgba(225,29,72,.1) !important; }
+
+/* Login field hints */
+.login-field-hint { font-size:.72rem; min-height:.9rem; margin-top:-6px; padding: 0 2px; transition: color .2s; }
+.login-field-hint.ok    { color: #16a34a; }
+.login-field-hint.error { color: #e11d48; }
+
+/* Password strength bar */
+.password-strength-wrap { display:flex; align-items:center; gap:.6rem; margin-top:-6px; margin-bottom:.25rem; }
+.strength-bar { flex:1; height:4px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+.strength-fill { height:100%; border-radius:999px; transition: width .3s, background .3s; }
+.strength-label { font-size:.72rem; font-weight:600; min-width:48px; }
+.strength-weak   .strength-fill { background:#e11d48; }
+.strength-fair   .strength-fill { background:#d97706; }
+.strength-good   .strength-fill { background:#0d9488; }
+.strength-strong .strength-fill { background:#16a34a; }
+
+/* Contact form validation */
+.login-input.field-ok    { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+.login-input.field-error { border-color: #e11d48; box-shadow: 0 0 0 3px rgba(225,29,72,.1); }

@@ -87,7 +87,7 @@
             <label class="login-label">Email Address</label>
             <div class="login-input-wrap">
               <span class="login-input-icon">✉</span>
-              <input id="loginEmail" type="email" class="login-input" placeholder="your@nhai.gov.in" autocomplete="email" required />
+              <input id="loginEmail" type="email" class="login-input" placeholder="your@nhai.gov.in" autocomplete="email" oninput="validateLoginField('loginEmail')" onblur="validateLoginField('loginEmail')" />
             </div>
           </div>
 
@@ -95,11 +95,16 @@
             <label class="login-label">Password</label>
             <div class="login-input-wrap">
               <span class="login-input-icon">🔑</span>
-              <input id="loginPassword" type="password" class="login-input" placeholder="••••••••••••" autocomplete="current-password" required />
+              <input id="loginPassword" type="password" class="login-input" placeholder="•••••••••••• (min. 6 characters)" autocomplete="current-password" oninput="validateLoginField('loginPassword')" onblur="validateLoginField('loginPassword')" />
               <button type="button" class="login-eye-btn" id="loginEyeBtn" onclick="togglePasswordVisibility()" title="Show/hide password">👁</button>
             </div>
           </div>
 
+          <div id="loginEmailHint" class="login-field-hint"></div>
+          <div id="loginPasswordStrength" class="password-strength-wrap hidden">
+            <div class="strength-bar"><div id="strengthFill" class="strength-fill"></div></div>
+            <span id="strengthLabel" class="strength-label"></span>
+          </div>
           <div class="login-options">
             <label class="login-remember">
               <input type="checkbox" id="loginRemember" />
@@ -714,9 +719,9 @@
     <div class="modal-header"><h3>New Contact</h3><button class="modal-close" onclick="closeModal('contactModal')">✕</button></div>
     <div class="modal-body modal-grid">
       <label class="span2">Full Name *<input id="c_name" placeholder="Jane Doe" /></label>
-      <label>Primary Email *<input id="c_email" type="email" placeholder="jane@company.com" /></label>
-      <label>Secondary Email<input id="c_secEmail" placeholder="optional" /></label>
-      <label>Phone<input id="c_phone" placeholder="+91 98765 43210" /></label>
+      <label>Primary Email *<input id="c_email" type="email" placeholder="jane@company.com" oninput="validateContactField('c_email')" onblur="validateContactField('c_email')" /></label>
+      <label>Secondary Email<input id="c_secEmail" placeholder="optional" oninput="validateContactField('c_secEmail')" onblur="validateContactField('c_secEmail')" /></label>
+      <label>Phone (10-digit mobile)<input id="c_phone" placeholder="9876543210" oninput="validateContactField('c_phone')" onblur="validateContactField('c_phone')" /></label>
       <label>Company<input id="c_company" placeholder="Acme Corp" /></label>
       <label>Gender<select id="c_gender"><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
       <label>Age<input id="c_age" type="number" min="1" max="120" placeholder="30" /></label>
