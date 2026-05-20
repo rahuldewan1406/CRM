@@ -2069,6 +2069,186 @@ function switchC360Tab(tab, btn) {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+//  BULK CONTACT UPDATE
+// ══════════════════════════════════════════════════════════════════
+
+function openBulkUpdateModal() {
+  const ids = [..._bulkSelected.contacts];
+  if (!ids.length) { alert('Select at least one contact first.'); return; }
+  if (!state.session || !can('contacts.update')) { alert('You need contacts.update permission.'); return; }
+
+  const countEl = q('bulkUpdateCount');
+  if (countEl) countEl.textContent = `✏ Updating ${ids.length} contact${ids.length!==1?'s':''}`;
+
+  // Reset all fields to disabled/empty
+  ['buCompany','buLocation','buGender','buTag'].forEach(id => {
+    const el = q(id); if (el) { el.value=''; el.disabled=true; }
+  });
+  ['buChkCompany','buChkLocation','buChkGender','buChkTag'].forEach(id => {
+    const el = q(id); if (el) el.checked=false;
+  });
+
+  const preview = q('bulkPreviewSection');
+  if (preview) preview.classList.add('hidden');
+  const errEl = q('bulkUpdateError');
+  if (errEl) errEl.textContent='';
+
+  openModal('bulkUpdateModal');
+}
+
+function toggleBulkField(fieldId, enabled) {
+  const el = q(fieldId);
+  if (!el) return;
+  el.disabled = !enabled;
+  if (enabled) el.focus();
+  else el.value='';
+  // Hide preview when fields change
+  q('bulkPreviewSection')?.classList.add('hidden');
+}
+
+function previewBulkUpdate() {
+  const changes = getBulkChanges();
+  if (!Object.keys(changes).length) {
+    q('bulkUpdateError').textContent = 'Check at least one field to update.';
+    return;
+  }
+  q('bulkUpdateError').textContent='';
+  const ids      = [..._bulkSelected.contacts];
+  const contacts = state.contacts.filter(c=>ids.includes(c.id));
+  const fieldLabels = { company:'Company', location:'Location', gender:'Gender', tags:'Tag' };
+
+  const changedFields = Object.keys(changes);
+  const headerCols = ['Contact', ...changedFields.map(f=>fieldLabels[f]||f)];
+
+  let rows = `<div class="bulk-preview-row header">${headerCols.map(h=>`<span>${h}</span>`).join('')}</div>`;
+  rows += contacts.slice(0,8).map(c=>`
+    <div class="bulk-preview-row">
+      <span>${c.name}</span>
+      ${changedFields.map(f=>`
+        <span>
+          <span class="bulk-preview-old">${c[f]||'—'}</span>
+          → <span class="bulk-preview-new">${changes[f]}</span>
+        </span>`).join('')}
+    </div>`).join('');
+  if (contacts.length > 8) rows += `<div class="bulk-preview-row" style="color:var(--text-3);font-size:.75rem"><span>…and ${contacts.length-8} more</span></div>`;
+
+  q('bulkPreviewTable').innerHTML = rows;
+  q('bulkPreviewSection').classList.remove('hidden');
+}
+
+function getBulkChanges() {
+  const changes = {};
+  if (q('buChkCompany')?.checked && q('buCompany')?.value.trim()) changes.company  = q('buCompany').value.trim();
+  if (q('buChkLocation')?.checked && q('buLocation')?.value.trim()) changes.location = q('buLocation').value.trim();
+  if (q('buChkGender')?.checked   && q('buGender')?.value)          changes.gender   = q('buGender').value;
+  if (q('buChkTag')?.checked      && q('buTag')?.value.trim())       changes.tags     = q('buTag').value.trim();
+  return changes;
+}
+
+async function confirmBulkUpdate() {
+  const changes = getBulkChanges();
+  const errEl   = q('bulkUpdateError');
+  if (!Object.keys(changes).length) { if(errEl) errEl.textContent='Check at least one field to update.'; return; }
+
+  const ids  = [..._bulkSelected.contacts];
+  const btn  = q('confirmBulkUpdateBtn');
+  if (btn) { btn.disabled=true; btn.textContent='Updating…'; }
+
+  let successCount=0, failCount=0;
+
+  for (const id of ids) {
+    try {
+      // Map 'tags' to a custom field — store in contact.tags array
+      const apiChanges = { ...changes };
+      if (apiChanges.tags) {
+        const contact = state.contacts.find(c=>c.id===id);
+        const existing = contact?.tags ? (Array.isArray(contact.tags)?contact.tags:[contact.tags]) : [];
+        if (!existing.includes(apiChanges.tags)) existing.push(apiChanges.tags);
+        apiChanges.tags = existing.join(',');
+        delete apiChanges.tags; // not an API field — stored locally
+        // Update local state only for tags
+        const c = state.contacts.find(x=>x.id===id);
+        if (c) {
+          if (!c.tags) c.tags=[];
+          if (!c.tags.includes(changes.tags)) c.tags.push(changes.tags);
+        }
+      }
+      // Update via API (company, location, gender)
+      const apiBody = {};
+      if (changes.company)  apiBody.company  = changes.company;
+      if (changes.location) apiBody.location = changes.location;
+      if (changes.gender)   apiBody.gender   = changes.gender;
+
+      if (Object.keys(apiBody).length) {
+        const ok = await apiUpdate('contacts', id, apiBody);
+        if (ok) {
+          // Update local state
+          const c = state.contacts.find(x=>x.id===id);
+          if (c) Object.assign(c, apiBody);
+          successCount++;
+        } else { failCount++; }
+      } else { successCount++; } // tag-only update
+    } catch(e) { failCount++; }
+  }
+
+  if (btn) { btn.disabled=false; btn.textContent='Apply to All'; }
+  closeModal('bulkUpdateModal');
+  clearBulkSelection('contacts');
+
+  // Refresh from API
+  const r = await apiFetch('/contacts');
+  if (r && r.ok) state.contacts = await r.json();
+  renderAll();
+
+  pushNotif(
+    `Bulk update complete`,
+    `${successCount} updated${failCount?`, ${failCount} failed`:''}`,
+    '✏','success'
+  );
+}
+
+// ── Bulk Tag ──────────────────────────────────────────────────────
+function bulkAssignTag() {
+  const ids = [..._bulkSelected.contacts];
+  if (!ids.length) { alert('Select at least one contact.'); return; }
+  const tagCount = q('bulkTagCount');
+  if (tagCount) tagCount.textContent = `Tagging ${ids.length} contact${ids.length!==1?'s':''}`;
+  const inp = q('bulkTagInput'); if (inp) inp.value='';
+  openModal('bulkTagModal');
+}
+
+function confirmBulkTag() {
+  const tag = q('bulkTagInput')?.value.trim();
+  if (!tag) { alert('Enter a tag name.'); return; }
+  const ids = [..._bulkSelected.contacts];
+  ids.forEach(id => {
+    const c = state.contacts.find(x=>x.id===id);
+    if (!c) return;
+    if (!c.tags) c.tags = [];
+    if (!c.tags.includes(tag)) c.tags.push(tag);
+  });
+  closeModal('bulkTagModal');
+  clearBulkSelection('contacts');
+  renderAll();
+  pushNotif(`Tagged ${ids.length} contacts`, `Label: "${tag}"`,'🏷','success');
+}
+
+// ── Bulk city dropdown (for bulk update modal) ─────────────────────
+function showBulkCityDropdown()     { filterBulkCityDropdown(q('buLocation')?.value||''); }
+function hideBulkCityDropdown()     { q('bulkCityDropdown')?.classList.add('hidden'); }
+function filterBulkCityDropdown(v)  {
+  const dd = q('bulkCityDropdown'); if(!dd) return;
+  const q2 = v.trim().toLowerCase();
+  const results = q2
+    ? ALL_CITIES_FLAT.filter(c=>c.city.toLowerCase().startsWith(q2)||c.label.toLowerCase().includes(q2)).slice(0,10)
+    : ALL_CITIES_FLAT.filter(c=>['Mumbai','Delhi','Bengaluru','Hyderabad','Chennai','Kolkata','Pune','Jaipur'].includes(c.city)).slice(0,8);
+  dd.innerHTML = results.map(c=>`<div class="city-option" onmousedown="selectBulkCity('${c.label.replace(/'/g,"\\'")}')")>📍 ${c.city} <span class="city-option-state">${c.state}</span></div>`).join('') || '<div class="city-no-results">Type to search</div>';
+  dd.classList.remove('hidden');
+}
+function selectBulkCity(label) { const el=q('buLocation'); if(el){el.value=label;} hideBulkCityDropdown(); }
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 // Show login screen on load (hide main app until authenticated)
 const _loginScreen = q('loginScreen');

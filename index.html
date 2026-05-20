@@ -296,12 +296,12 @@
       <!-- Bulk action bar -->
       <div id="bulkContactBar" class="bulk-action-bar hidden">
         <span id="bulkContactCount" class="bulk-count">0 selected</span>
-        <button class="bulk-btn" onclick="bulkEmail('contacts')">📧 Email Selected</button>
+        <button class="bulk-btn" onclick="openBulkUpdateModal()">✏ Update Fields</button>
+        <button class="bulk-btn" onclick="bulkAssignTag()">🏷 Tag</button>
+        <button class="bulk-btn" onclick="bulkEmail('contacts')">📧 Email</button>
         <button class="bulk-btn" onclick="bulkExport('contacts')">⬇ Export CSV</button>
         <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('contacts')">🗑 Delete</button>
         <button class="bulk-btn-ghost" onclick="clearBulkSelection('contacts')">✕ Clear</button>
-      </div>
-
       <!-- Contact grid/list -->
       <div id="contactListWrap">
         <div id="contactList" class="contact-grid"></div>
@@ -926,6 +926,107 @@
         <button type="submit" class="btn-modal-primary">Save Changes</button>
       </div>
     </form>
+  </dialog>
+
+
+  <!-- Bulk Contact Update Modal -->
+  <dialog id="bulkUpdateModal" class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>✏ Bulk Update Contacts</h3>
+      <button class="modal-close" onclick="closeModal('bulkUpdateModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="bulkUpdateCount" class="bulk-update-info"></div>
+      <p style="font-size:.8rem;color:var(--text-3);margin-bottom:.75rem">
+        Only filled fields will be updated. Leave blank to keep existing values.
+      </p>
+
+      <div class="bulk-update-grid">
+        <!-- Company -->
+        <div class="bulk-field-group">
+          <label class="bulk-field-label">
+            <input type="checkbox" id="buChkCompany" onchange="toggleBulkField('buCompany',this.checked)" />
+            Update Company
+          </label>
+          <input id="buCompany" class="bulk-field-input" placeholder="New company name" disabled />
+        </div>
+
+        <!-- Location -->
+        <div class="bulk-field-group">
+          <label class="bulk-field-label">
+            <input type="checkbox" id="buChkLocation" onchange="toggleBulkField('buLocation',this.checked)" />
+            Update Location
+          </label>
+          <div class="location-field-wrap">
+            <input id="buLocation" class="location-input bulk-field-input" placeholder="Select or type city" disabled
+              oninput="filterBulkCityDropdown(this.value)"
+              onfocus="showBulkCityDropdown()"
+              onblur="setTimeout(hideBulkCityDropdown,200)" />
+            <span class="location-chevron">▾</span>
+            <div id="bulkCityDropdown" class="city-dropdown hidden"></div>
+          </div>
+        </div>
+
+        <!-- Gender -->
+        <div class="bulk-field-group">
+          <label class="bulk-field-label">
+            <input type="checkbox" id="buChkGender" onchange="toggleBulkField('buGender',this.checked)" />
+            Update Gender
+          </label>
+          <select id="buGender" class="bulk-field-input" disabled>
+            <option value="">—</option>
+            <option>Female</option><option>Male</option><option>Other</option>
+          </select>
+        </div>
+
+        <!-- Tag / Notes -->
+        <div class="bulk-field-group">
+          <label class="bulk-field-label">
+            <input type="checkbox" id="buChkTag" onchange="toggleBulkField('buTag',this.checked)" />
+            Add Tag Label
+          </label>
+          <input id="buTag" class="bulk-field-input" placeholder="e.g. VIP, Highway, North Zone" disabled />
+        </div>
+      </div>
+
+      <!-- Preview table -->
+      <div class="bulk-preview-section hidden" id="bulkPreviewSection">
+        <div class="c360-sub-title" style="margin-top:.75rem">Preview — contacts to be updated</div>
+        <div id="bulkPreviewTable" class="bulk-preview-table"></div>
+      </div>
+
+      <p id="bulkUpdateError" style="color:var(--rose);font-size:.8rem;min-height:1rem;margin-top:.5rem"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('bulkUpdateModal')">Cancel</button>
+      <button type="button" class="btn-secondary-sm" onclick="previewBulkUpdate()">👁 Preview</button>
+      <button type="button" class="btn-modal-primary" id="confirmBulkUpdateBtn" onclick="confirmBulkUpdate()">Apply to All</button>
+    </div>
+  </dialog>
+
+  <!-- Bulk Tag Modal -->
+  <dialog id="bulkTagModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>🏷 Tag Selected Contacts</h3>
+      <button class="modal-close" onclick="closeModal('bulkTagModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="bulkTagCount" style="font-size:.82rem;color:var(--text-2);margin-bottom:.5rem"></p>
+      <label>Tag Label<input id="bulkTagInput" placeholder="e.g. VIP, Priority, Zone-A" /></label>
+      <div class="bulk-tag-suggestions">
+        <span style="font-size:.75rem;color:var(--text-3)">Quick tags:</span>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='VIP'">VIP</button>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='Priority'">Priority</button>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='North Zone'">North Zone</button>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='South Zone'">South Zone</button>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='Highway'">Highway</button>
+        <button class="quick-reply-chip" onclick="q('bulkTagInput').value='Follow-up'">Follow-up</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('bulkTagModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="confirmBulkTag()">Apply Tag</button>
+    </div>
   </dialog>
 
 
