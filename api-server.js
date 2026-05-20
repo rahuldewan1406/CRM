@@ -1,57 +1,41 @@
 'use strict';
-const express  = require('express');
-const cors     = require('cors');
-const path     = require('path');
-
-const authRouter      = require('./server/auth');
-const usersRouter     = require('./server/users');
-const resourcesRouter = require('./server/resources');
+require('dotenv').config();
+const express = require('express');
+const cors    = require('cors');
+const { init } = require('./server/db');
 const { securityHeaders } = require('./server/middleware');
 
 const PORT           = process.env.PORT || 3002;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:8000';
+const app            = express();
 
-const app = express();
+app.set('trust proxy', 1); // Trust Nginx proxy for req.ip
 
-// ── Security headers on every response ─────────────────────────────
 app.use(securityHeaders);
-
-// ── CORS — explicit origin whitelist ───────────────────────────────
 app.use(cors({
-  origin: (origin, cb) => {
-    // Allow requests with no origin (curl, Postman, same-origin)
-    if (!origin || origin === ALLOWED_ORIGIN) return cb(null, true);
-    cb(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: (origin, cb) => (!origin || origin === ALLOWED_ORIGIN) ? cb(null, true) : cb(new Error('CORS blocked')),
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Authorization','Content-Type'],
 }));
-
-// ── Body parser — strict limits ─────────────────────────────────────
 app.use(express.json({ limit: '512kb', strict: true }));
 
-// ── Health check (public, no auth) ─────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
-// ── Routes ──────────────────────────────────────────────────────────
-app.use('/auth',  authRouter);
-app.use('/users', usersRouter);
-app.use('/',      resourcesRouter);
+app.use('/auth',  require('./server/auth'));
+app.use('/users', require('./server/users'));
+app.use('/',      require('./server/resources'));
 
-// ── 404 handler ─────────────────────────────────────────────────────
-app.use((req, res) => res.status(404).json({ message: 'Not found.' }));
-
-// ── Global error handler (never leak stack traces) ──────────────────
+app.use((req, res)          => res.status(404).json({ message: 'Not found.' }));
 app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  // Log internally but never expose stack to client
-  if (status >= 500) console.error('[ERROR]', err.message, err.stack);
-  res.status(status).json({ message: status >= 500 ? 'Internal server error.' : err.message });
+  if (err.status >= 500 || !err.status) console.error('[API ERROR]', err.message);
+  res.status(err.status || 500).json({ message: err.status < 500 ? err.message : 'Internal server error.' });
 });
 
-// ── Uncaught exception guard ────────────────────────────────────────
-process.on('uncaughtException',  err => { console.error('[UNCAUGHT]', err); });
-process.on('unhandledRejection', err => { console.error('[UNHANDLED]', err); });
+process.on('uncaughtException',  e => console.error('[UNCAUGHT]',  e));
+process.on('unhandledRejection', e => console.error('[UNHANDLED]', e));
 
-app.listen(PORT, () => console.log(`API server on port ${PORT}`));
+// Connect DB then start server
+init().then(() => {
+  app.listen(PORT, '127.0.0.1', () => console.log(`[API] Listening on 127.0.0.1:${PORT}`));
+}).catch(err => { console.error('[FATAL] DB init failed:', err.message); process.exit(1); });

@@ -1,6 +1,7 @@
 // ── Config ────────────────────────────────────────────────────────────────────
-const API      = 'http://localhost:3002';
-const SMTP_API = 'http://localhost:3001';
+// API paths — resolved relative to current origin via Nginx proxy
+const API      = window.location.origin + '/api';
+const SMTP_API = window.location.origin + '/smtp';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
