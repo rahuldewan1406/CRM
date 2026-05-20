@@ -805,7 +805,7 @@ function renderDashboard() {
       <span class="pipeline-val">₹${fmtMoney(totals[i])}</span>
     </div>`).join('');
   q('weightedForecast').textContent = fmtMoney(wf);
-  q('weightedForecast2').textContent = fmtMoney(wf);
+  const wf2 = q('weightedForecast2'); if (wf2) wf2.textContent = fmtMoney(wf);
 
   // ── Ticket donut ───────────────────────────────────────────────────────────
   const open=state.tickets.filter(t=>t.status==='Open').length, prog=state.tickets.filter(t=>t.status==='In Progress').length, res=state.tickets.filter(t=>t.status==='Resolved').length;
