@@ -103,6 +103,47 @@ let _editingUserId   = null;
 let _adminCurrentTab = 'users';
 
 
+// ── Object/Array constants hoisted to avoid TDZ ───────────────────
+const ROLE_DEFINITIONS = {
+  admin:     { label:'Administrator', icon:'👑', color:'#7c3aed', bg:'#f3e8ff', desc:'Full access to all modules, users, and settings.', permissions:['contacts','leads','tickets','projects','reports','users','approvals','documents','kpi'] },
+  manager:   { label:'Manager',       icon:'🏢', color:'#2563eb', bg:'#eff6ff', desc:'Can manage contacts, leads, tickets, projects. Cannot manage users.', permissions:['contacts','leads','tickets','projects','reports','approvals','documents','kpi'] },
+  sales_rep: { label:'Sales Rep',     icon:'💼', color:'#d97706', bg:'#fef3c7', desc:'Can create and update contacts, leads. Read-only tickets.',          permissions:['contacts','leads','tickets_read'] },
+  viewer:    { label:'Viewer',        icon:'👁',  color:'#64748b', bg:'#f1f5f9', desc:'Read-only access to all data.',                                      permissions:['contacts_read','leads_read','tickets_read'] },
+};
+
+
+const APPROVAL_ICONS = {
+  'Budget Approval':'💰', 'Project Kickoff':'🚀', 'Vendor Empanelment':'🤝',
+  'Leave / Absence':'📅', 'Procurement':'📦', 'Technical Clearance':'🔧',
+  'HR Policy':'👥', 'Other':'📋',
+};
+
+
+const CRM_FIELDS = [
+  { key:'name',            label:'Full Name',       required:true  },
+  { key:'email',           label:'Primary Email',   required:true  },
+  { key:'phone',           label:'Phone',           required:false },
+  { key:'company',         label:'Company',         required:false },
+  { key:'location',        label:'Location',        required:false },
+  { key:'gender',          label:'Gender',          required:false },
+  { key:'age',             label:'Age',             required:false },
+  { key:'secondaryEmail',  label:'Secondary Email', required:false },
+];
+
+
+const FIELD_ALIASES = {
+  name:           ['name','full name','fullname','contact name','contact','person'],
+  email:          ['email','email address','primary email','e-mail','mail'],
+  phone:          ['phone','mobile','phone number','mobile number','contact number','cell'],
+  company:        ['company','organization','organisation','org','company name','firm'],
+  location:       ['location','city','address','place','city state','area'],
+  gender:         ['gender','sex'],
+  age:            ['age','years','dob'],
+  secondaryEmail: ['secondary email','secondary_email','email 2','alt email','alternate email'],
+};
+
+
+
 
 const REPORT_CONFIG = {
   contacts: {
@@ -4998,28 +5039,10 @@ function startGroupCall(groupId) {
 
 // ── State ─────────────────────────────────────────────────────────
 
-const CRM_FIELDS = [
-  { key:'name',            label:'Full Name',       required:true  },
-  { key:'email',           label:'Primary Email',   required:true  },
-  { key:'phone',           label:'Phone',           required:false },
-  { key:'company',         label:'Company',         required:false },
-  { key:'location',        label:'Location',        required:false },
-  { key:'gender',          label:'Gender',          required:false },
-  { key:'age',             label:'Age',             required:false },
-  { key:'secondaryEmail',  label:'Secondary Email', required:false },
-];
+// CRM_FIELDS — hoisted
 
 // Auto-map common column name variations
-const FIELD_ALIASES = {
-  name:           ['name','full name','fullname','contact name','contact','person'],
-  email:          ['email','email address','primary email','e-mail','mail'],
-  phone:          ['phone','mobile','phone number','mobile number','contact number','cell'],
-  company:        ['company','organization','organisation','org','company name','firm'],
-  location:       ['location','city','address','place','city state','area'],
-  gender:         ['gender','sex'],
-  age:            ['age','years','dob'],
-  secondaryEmail: ['secondary email','secondary_email','email 2','alt email','alternate email'],
-};
+// FIELD_ALIASES — hoisted
 
 // ── Open / reset modal ────────────────────────────────────────────
 function openBulkUploadModal() {
@@ -5346,11 +5369,7 @@ function downloadContactTemplateSample() {
 function saveApprovals() { localStorage.setItem('crm_approvals', JSON.stringify(state.approvals)); }
 
 
-const APPROVAL_ICONS = {
-  'Budget Approval':'💰', 'Project Kickoff':'🚀', 'Vendor Empanelment':'🤝',
-  'Leave / Absence':'📅', 'Procurement':'📦', 'Technical Clearance':'🔧',
-  'HR Policy':'👥', 'Other':'📋',
-};
+// APPROVAL_ICONS — hoisted
 
 function submitApprovalRequest() {
   const title    = q('aprTitle')?.value.trim();
@@ -5563,12 +5582,7 @@ function scanProjectDelays() {
 //  FEATURE 2: ROLES & RESPONSIBILITY CONTROLS (RBAC MANAGEMENT UI)
 // ══════════════════════════════════════════════════════════════════
 
-const ROLE_DEFINITIONS = {
-  admin:     { label:'Administrator', icon:'👑', color:'#7c3aed', bg:'#f3e8ff', desc:'Full access to all modules, users, and settings.', permissions:['contacts','leads','tickets','projects','reports','users','approvals','documents','kpi'] },
-  manager:   { label:'Manager',       icon:'🏢', color:'#2563eb', bg:'#eff6ff', desc:'Can manage contacts, leads, tickets, projects. Cannot manage users.', permissions:['contacts','leads','tickets','projects','reports','approvals','documents','kpi'] },
-  sales_rep: { label:'Sales Rep',     icon:'💼', color:'#d97706', bg:'#fef3c7', desc:'Can create and update contacts, leads. Read-only tickets.',          permissions:['contacts','leads','tickets_read'] },
-  viewer:    { label:'Viewer',        icon:'👁',  color:'#64748b', bg:'#f1f5f9', desc:'Read-only access to all data.',                                      permissions:['contacts_read','leads_read','tickets_read'] },
-};
+// ROLE_DEFINITIONS — hoisted
 
 // ══════════════════════════════════════════════════════════════════
 //  FEATURE 3: EDUCATION QUALIFICATION IN CONTACT DETAILS
