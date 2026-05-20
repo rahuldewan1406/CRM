@@ -157,6 +157,8 @@
       <button class="tnav" data-tab="calendar">Calendar</button>
       <button class="tnav" data-tab="reports">Reports</button>
       <button class="tnav" data-tab="documents">Documents</button>
+      <button class="tnav" data-tab="approvals">Approvals</button>
+      <button class="tnav" data-tab="performance">KPIs</button>
       <button class="tnav" data-tab="portal-admin">Portal</button>
       <button class="tnav" data-tab="email">Email</button>
     </nav>
@@ -570,6 +572,54 @@
 
 
     <!-- ══════════════════════════════════════════════════
+         APPROVALS
+    ══════════════════════════════════════════════════ -->
+    <section id="approvals" class="page">
+      <div class="page-header">
+        <h1>Approval System</h1>
+        <button class="btn-primary-sm" onclick="openModal('newApprovalModal')">+ New Approval Request</button>
+      </div>
+      <!-- Stats -->
+      <div class="approval-stats" id="approvalStats"></div>
+      <!-- Filter tabs -->
+      <div class="approval-filter-tabs">
+        <button class="apf-tab active" onclick="setApprovalFilter('all',this)">All</button>
+        <button class="apf-tab" onclick="setApprovalFilter('pending',this)">⏳ Pending</button>
+        <button class="apf-tab" onclick="setApprovalFilter('approved',this)">✅ Approved</button>
+        <button class="apf-tab" onclick="setApprovalFilter('rejected',this)">❌ Rejected</button>
+        <button class="apf-tab" onclick="setApprovalFilter('mine',this)">👤 My Requests</button>
+      </div>
+      <div id="approvalList" class="approval-list"></div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════
+         PERFORMANCE MANAGEMENT (KPIs)
+    ══════════════════════════════════════════════════ -->
+    <section id="performance" class="page">
+      <div class="page-header">
+        <h1>Performance Management</h1>
+        <button class="btn-primary-sm" onclick="openModal('newKpiModal')">+ Add KPI</button>
+      </div>
+      <!-- KPI Summary -->
+      <div id="kpiSummaryBar" class="kpi-summary-bar"></div>
+      <!-- Role performance cards -->
+      <div id="kpiRoleCards" class="kpi-role-cards"></div>
+      <!-- KPI Table -->
+      <div class="panel" style="margin-top:1rem">
+        <div class="panel-toolbar">
+          <h4 class="panel-title">KPI Tracker</h4>
+          <select id="kpiRoleFilter" class="filter-select" onchange="renderPerformance()">
+            <option value="">All Roles</option>
+            <option>admin</option><option>manager</option><option>sales_rep</option><option>viewer</option>
+          </select>
+        </div>
+        <div id="kpiList" class="kpi-list"></div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════
          CALENDAR
     ══════════════════════════════════════════════════ -->
     <section id="calendar" class="page">
@@ -786,6 +836,20 @@
           <div id="cityDropdown" class="city-dropdown hidden"></div>
         </div>
       </label>
+      <div class="contact-modal-section-title span2">🎓 Education &amp; Professional</div>
+      <label>Qualification<select id="c_qualification">
+        <option value="">— Select —</option>
+        <option>High School (10th)</option><option>Senior Secondary (12th)</option>
+        <option>Diploma</option><option>B.E. / B.Tech</option><option>B.Sc</option>
+        <option>B.Com</option><option>B.A.</option><option>BBA / BMS</option>
+        <option>M.E. / M.Tech</option><option>M.Sc</option><option>MBA</option>
+        <option>M.A.</option><option>MCA</option><option>Ph.D</option>
+        <option>CA / CMA / CS</option><option>MBBS / MD</option><option>LLB</option>
+        <option>Other</option>
+      </select></label>
+      <label>Specialization<input id="c_specialization" placeholder="e.g. Civil Engineering" /></label>
+      <label class="span2">University / Institution<input id="c_university" placeholder="e.g. IIT Delhi" /></label>
+      <label class="span2">Designation / Role<input id="c_designation" placeholder="e.g. Project Manager, Engineer" /></label>
       <p id="contactFormError" class="span2" style="color:var(--rose);font-size:.8rem;min-height:1rem;margin:0"></p>
       <div class="modal-footer span2">
         <button type="button" class="btn-modal-secondary" onclick="closeModal('contactModal')">Cancel</button>
@@ -930,6 +994,81 @@
     </form>
   </dialog>
 
+
+
+  <!-- New Approval Request Modal -->
+  <dialog id="newApprovalModal" class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>📋 New Approval Request</h3>
+      <button class="modal-close" onclick="closeModal('newApprovalModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Request Title<input id="aprTitle" placeholder="e.g. Budget approval for NH-48 project" /></label>
+      <label>Category<select id="aprCategory">
+        <option>Budget Approval</option><option>Project Kickoff</option><option>Vendor Empanelment</option>
+        <option>Leave / Absence</option><option>Procurement</option><option>Technical Clearance</option>
+        <option>HR Policy</option><option>Other</option>
+      </select></label>
+      <label>Priority<select id="aprPriority">
+        <option>Normal</option><option>High</option><option>Urgent</option>
+      </select></label>
+      <label>Approver (Email)<input id="aprApprover" type="email" placeholder="approver@nhai.gov.in" /></label>
+      <label>Amount (₹) — if applicable<input id="aprAmount" type="number" placeholder="0" /></label>
+      <label class="span2">Description<textarea id="aprDesc" rows="3" placeholder="Describe what needs to be approved…"></textarea></label>
+      <label class="span2">Supporting Document (optional)<input id="aprDoc" type="file" accept=".pdf,.doc,.docx,.xlsx" /></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('newApprovalModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="submitApprovalRequest()">Submit Request</button>
+    </div>
+  </dialog>
+
+  <!-- Add KPI Modal -->
+  <dialog id="newKpiModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3>📊 Add KPI</h3>
+      <button class="modal-close" onclick="closeModal('newKpiModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>KPI Name<input id="kpiName" placeholder="e.g. Monthly Lead Conversion Rate" /></label>
+      <label>Category<select id="kpiCategory">
+        <option>Sales</option><option>Support</option><option>Projects</option>
+        <option>Productivity</option><option>Customer Success</option><option>Custom</option>
+      </select></label>
+      <label>Target Value<input id="kpiTarget" type="number" placeholder="100" /></label>
+      <label>Unit<input id="kpiUnit" placeholder="e.g. %, count, ₹, days" /></label>
+      <label>Assigned Role<select id="kpiRole">
+        <option value="">All Roles</option>
+        <option>admin</option><option>manager</option><option>sales_rep</option><option>viewer</option>
+      </select></label>
+      <label>Measurement Period<select id="kpiPeriod">
+        <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option><option>Yearly</option>
+      </select></label>
+      <label>Current Value<input id="kpiCurrent" type="number" placeholder="0" /></label>
+      <label>Description<textarea id="kpiDesc" rows="2" placeholder="What this KPI measures…"></textarea></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('newKpiModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" onclick="saveKpi()">Save KPI</button>
+    </div>
+  </dialog>
+
+  <!-- Approval Action Modal -->
+  <dialog id="approvalActionModal" class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="approvalActionTitle">Review Request</h3>
+      <button class="modal-close" onclick="closeModal('approvalActionModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="approvalActionBody"></div>
+      <label style="margin-top:.75rem">Comment (optional)<textarea id="approvalComment" rows="2" placeholder="Add a comment…"></textarea></label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" onclick="closeModal('approvalActionModal')">Cancel</button>
+      <button type="button" class="btn-modal-primary" id="approvalApproveBtn" onclick="processApproval('approved')" style="background:#16a34a;border-color:#16a34a">✅ Approve</button>
+      <button type="button" class="btn-modal-primary" id="approvalRejectBtn" onclick="processApproval('rejected')" style="background:#e11d48;border-color:#e11d48">❌ Reject</button>
+    </div>
+  </dialog>
 
 
   <!-- Bulk Upload Contacts Modal -->

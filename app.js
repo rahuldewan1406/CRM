@@ -14,6 +14,8 @@ const state = {
   milestones:    JSON.parse(localStorage.getItem('crm_milestones')  || '[]'),
   activities:    JSON.parse(localStorage.getItem('crm_activities')  || '[]'),
   documents:     JSON.parse(localStorage.getItem('crm_documents')   || '[]'),
+  approvals:     JSON.parse(localStorage.getItem('crm_approvals')   || '[]'),
+  kpis:          JSON.parse(localStorage.getItem('crm_kpis')         || 'null') || [],
   portalSessions: JSON.parse(localStorage.getItem('crm_portal_sessions') || '[]'),
   portalSettings: JSON.parse(localStorage.getItem('crm_portal_settings') || '{"showProjects":true,"showTickets":true,"showDocs":true,"showActivity":false}'),
   notifications:  JSON.parse(localStorage.getItem('crm_notifications') || '[]'),
@@ -403,8 +405,10 @@ function switchTab(id) {
   if (id==='projects') renderProjectViews();
   if (id==='reports')   renderReport();
   if (id==='documents') { syncDocDropdowns(); renderDocuments(); }
-  if (id==='calendar')  renderCalendar();
+  if (id==='calendar')    renderCalendar();
   if (id==='portal-admin') renderPortalAdmin();
+  if (id==='approvals')    renderApprovals();
+  if (id==='performance')  renderPerformance();
 }
 function switchProjectView(view) {
   document.querySelectorAll('.project-view').forEach(v=>v.classList.remove('active'));
@@ -1233,6 +1237,8 @@ function renderAll() {
   renderDocuments();
   if (q('reportBody')) renderReport();
   renderPortalAdmin();
+  renderApprovals();
+  renderPerformance();
   initChat();
   renderHealthScores();
   renderNotifBell();
@@ -2309,6 +2315,8 @@ q('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long
 requestNotifPermission();
 runNotifScan();
 setInterval(runNotifScan, 5 * 60 * 1000);
+scanProjectDelays();
+setInterval(scanProjectDelays, 10 * 60 * 1000);
 
 // ══════════════════════════════════════════════════════════════════
 //  FEATURE 1: REPORTS & CSV/PDF EXPORT
@@ -5312,5 +5320,461 @@ function downloadContactTemplateSample() {
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='contact_upload_sample.csv'; a.click();
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 1: APPROVAL SYSTEM WITH AUTO EMAIL TRIGGER
+// ══════════════════════════════════════════════════════════════════
+
+function saveApprovals() { localStorage.setItem('crm_approvals', JSON.stringify(state.approvals)); }
+
+let _approvalFilter = 'all';
+let _reviewingApprovalId = null;
+
+const APPROVAL_ICONS = {
+  'Budget Approval':'💰', 'Project Kickoff':'🚀', 'Vendor Empanelment':'🤝',
+  'Leave / Absence':'📅', 'Procurement':'📦', 'Technical Clearance':'🔧',
+  'HR Policy':'👥', 'Other':'📋',
+};
+
+function submitApprovalRequest() {
+  const title    = q('aprTitle')?.value.trim();
+  const category = q('aprCategory')?.value;
+  const priority = q('aprPriority')?.value;
+  const approver = q('aprApprover')?.value.trim();
+  const amount   = q('aprAmount')?.value;
+  const desc     = q('aprDesc')?.value.trim();
+  if (!title)    { alert('Title is required.'); return; }
+  if (!approver || !isEmail(approver)) { alert('Valid approver email is required.'); return; }
+
+  const apr = {
+    id:          crypto.randomUUID(),
+    title, category, priority, approver, desc,
+    amount:      amount ? Number(amount) : null,
+    status:      'pending',
+    requestedBy: state.session?.name || 'Unknown',
+    requestedAt: new Date().toISOString(),
+    comment:     '',
+    actionAt:    null,
+  };
+
+  state.approvals.unshift(apr);
+  saveApprovals();
+  closeModal('newApprovalModal');
+  ['aprTitle','aprDesc','aprApprover','aprAmount'].forEach(id=>{const el=q(id);if(el)el.value='';});
+  renderApprovals();
+
+  // Auto-trigger email to approver
+  sendApprovalEmail(apr, 'request');
+  pushNotif(`Approval request submitted`, `"${title}" sent to ${approver}`, '📋', 'info');
+}
+
+async function sendApprovalEmail(apr, type) {
+  const subjects = {
+    request:  `[APPROVAL REQUIRED] ${apr.category}: ${apr.title}`,
+    approved: `[APPROVED] ${apr.category}: ${apr.title}`,
+    rejected: `[REJECTED] ${apr.category}: ${apr.title}`,
+  };
+  const bodies = {
+    request: `Dear Approver,\n\nA new approval request requires your attention.\n\nRequest Details:\n• Title: ${apr.title}\n• Category: ${apr.category}\n• Priority: ${apr.priority}\n• Requested by: ${apr.requestedBy}\n• Date: ${new Date(apr.requestedAt).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}\n${apr.amount?`• Amount: ₹${fmtMoney(apr.amount)}\n`:''}\nDescription:\n${apr.desc||'No description provided.'}\n\nPlease log in to the DIC-NHAI CRM to review and approve or reject this request.\n\nRegards,\nDIC-NHAI CRM System`,
+    approved: `Dear ${apr.requestedBy},\n\nYour approval request has been APPROVED.\n\n• Title: ${apr.title}\n• Category: ${apr.category}\n• Approved on: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}\n${apr.comment?`• Comment: ${apr.comment}`:''}\n\nRegards,\nDIC-NHAI CRM System`,
+    rejected: `Dear ${apr.requestedBy},\n\nYour approval request has been REJECTED.\n\n• Title: ${apr.title}\n• Category: ${apr.category}\n• Rejected on: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}\n${apr.comment?`• Reason: ${apr.comment}`:''}\n\nPlease resubmit with required changes.\n\nRegards,\nDIC-NHAI CRM System`,
+  };
+  try {
+    const to = type === 'request' ? apr.approver : (state.session?.email || apr.requestedBy);
+    await fetch(`${SMTP_API}/api/send-email`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ recipients:[to], subject:subjects[type], body:bodies[type] })
+    });
+  } catch(e) { /* SMTP offline — notification is still shown */ }
+}
+
+function setApprovalFilter(filter, el) {
+  _approvalFilter = filter;
+  document.querySelectorAll('.apf-tab').forEach(b=>b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderApprovals();
+}
+
+function renderApprovals() {
+  // Stats
+  const statsEl = q('approvalStats');
+  if (statsEl) {
+    const pending  = state.approvals.filter(a=>a.status==='pending').length;
+    const approved = state.approvals.filter(a=>a.status==='approved').length;
+    const rejected = state.approvals.filter(a=>a.status==='rejected').length;
+    statsEl.innerHTML = `
+      <div class="approval-stat"><div class="approval-stat-val" style="color:var(--text)">${state.approvals.length}</div><div class="approval-stat-label">Total</div></div>
+      <div class="approval-stat"><div class="approval-stat-val" style="color:#d97706">${pending}</div><div class="approval-stat-label">Pending</div></div>
+      <div class="approval-stat"><div class="approval-stat-val" style="color:#16a34a">${approved}</div><div class="approval-stat-label">Approved</div></div>
+      <div class="approval-stat"><div class="approval-stat-val" style="color:#e11d48">${rejected}</div><div class="approval-stat-label">Rejected</div></div>`;
+  }
+
+  let list = [...state.approvals];
+  if (_approvalFilter === 'pending')  list = list.filter(a=>a.status==='pending');
+  if (_approvalFilter === 'approved') list = list.filter(a=>a.status==='approved');
+  if (_approvalFilter === 'rejected') list = list.filter(a=>a.status==='rejected');
+  if (_approvalFilter === 'mine')     list = list.filter(a=>a.requestedBy===state.session?.name);
+
+  const listEl = q('approvalList');
+  if (!listEl) return;
+  if (!list.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text-3)">No approval requests found.</div>`;
+    return;
+  }
+
+  const statusBadge = { pending:'<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700">⏳ Pending</span>', approved:'<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700">✅ Approved</span>', rejected:'<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700">❌ Rejected</span>' };
+  const priorityBadge = { Normal:'', High:'<span style="background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:4px;font-size:.68rem;font-weight:700">HIGH</span>', Urgent:'<span style="background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-size:.68rem;font-weight:700">URGENT</span>' };
+
+  listEl.innerHTML = list.map(a => `
+    <div class="approval-card status-${a.status}">
+      <div class="approval-card-header">
+        <span class="approval-card-icon">${APPROVAL_ICONS[a.category]||'📋'}</span>
+        <div class="approval-card-title">${a.title}</div>
+        ${statusBadge[a.status]} ${priorityBadge[a.priority]||''}
+      </div>
+      <div class="approval-card-meta">
+        <span>📂 ${a.category}</span>
+        <span>👤 ${a.requestedBy}</span>
+        <span>📧 → ${a.approver}</span>
+        <span>🕐 ${timeAgo(a.requestedAt)}</span>
+        ${a.amount ? `<span>💰 ₹${fmtMoney(a.amount)}</span>` : ''}
+      </div>
+      ${a.desc ? `<div class="approval-card-desc">${a.desc.slice(0,120)}${a.desc.length>120?'…':''}</div>` : ''}
+      ${a.comment ? `<div class="approval-comment">💬 ${a.comment}</div>` : ''}
+      <div class="approval-card-footer">
+        <div class="approval-card-actions">
+          ${a.status==='pending' ? `
+            <button class="apr-btn apr-btn-approve" onclick="openApprovalAction('${a.id}')">Review</button>
+            <button class="apr-btn apr-btn-view" onclick="resendApprovalEmail('${a.id}')">📧 Resend</button>
+          ` : `<button class="apr-btn apr-btn-view" onclick="openApprovalAction('${a.id}')">View</button>`}
+          <button class="apr-btn apr-btn-reject" onclick="deleteApproval('${a.id}')">🗑</button>
+        </div>
+        ${a.actionAt ? `<span style="font-size:.72rem;color:var(--text-3)">${a.status==='approved'?'Approved':'Rejected'} ${timeAgo(a.actionAt)}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function openApprovalAction(id) {
+  const a = state.approvals.find(x=>x.id===id);
+  if (!a) return;
+  _reviewingApprovalId = id;
+  q('approvalActionTitle').textContent = a.status === 'pending' ? '📋 Review Request' : '📋 Approval Details';
+  q('approvalActionBody').innerHTML = `
+    <div style="background:var(--bg);border-radius:10px;padding:.85rem;margin-bottom:.5rem">
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:.4rem">${a.title}</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;font-size:.78rem;color:var(--text-2);margin-bottom:.4rem">
+        <span>📂 ${a.category}</span><span>👤 ${a.requestedBy}</span><span>🕐 ${timeAgo(a.requestedAt)}</span>
+        ${a.amount?`<span>💰 ₹${fmtMoney(a.amount)}</span>`:''}
+      </div>
+      ${a.desc?`<div style="font-size:.82rem;color:var(--text-2)">${a.desc}</div>`:''}
+    </div>`;
+  q('approvalComment').value = a.comment || '';
+  const approveBtn = q('approvalApproveBtn');
+  const rejectBtn  = q('approvalRejectBtn');
+  if (approveBtn) approveBtn.style.display = a.status==='pending' ? '' : 'none';
+  if (rejectBtn)  rejectBtn.style.display  = a.status==='pending' ? '' : 'none';
+  openModal('approvalActionModal');
+}
+
+function processApproval(action) {
+  const a = state.approvals.find(x=>x.id===_reviewingApprovalId);
+  if (!a) return;
+  a.status   = action;
+  a.comment  = q('approvalComment')?.value.trim() || '';
+  a.actionAt = new Date().toISOString();
+  a.actionBy = state.session?.name || 'System';
+  saveApprovals();
+  closeModal('approvalActionModal');
+  renderApprovals();
+  sendApprovalEmail(a, action);
+  pushNotif(`Request ${action}`, `"${a.title}" has been ${action}.`, action==='approved'?'✅':'❌', action==='approved'?'success':'info');
+}
+
+function resendApprovalEmail(id) {
+  const a = state.approvals.find(x=>x.id===id);
+  if (a) { sendApprovalEmail(a,'request'); pushNotif('Email resent', `Reminder sent to ${a.approver}`, '📧','info'); }
+}
+
+function deleteApproval(id) {
+  if (!confirm('Delete this approval request?')) return;
+  state.approvals = state.approvals.filter(x=>x.id!==id);
+  saveApprovals(); renderApprovals();
+}
+
+// ── Auto-scan project/task delays ────────────────────────────────
+function scanProjectDelays() {
+  const now = new Date();
+  state.projects.forEach(p => {
+    if (!p.dueDate || p.status==='Completed' || p._delayNotified) return;
+    const due = new Date(p.dueDate);
+    if (due < now) {
+      pushNotif(`Project Delayed: ${p.name}`, `Due date was ${fmtDate(p.dueDate)}. Status: ${p.status}`, '⚠️','warning');
+      // Trigger email to project manager
+      const mgr = state.contacts.find(c=>c.name===p.manager||c.email===p.manager);
+      if (mgr?.email) {
+        fetch(`${SMTP_API}/api/send-email`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({recipients:[mgr.email],subject:`[DELAY ALERT] Project: ${p.name}`,
+            body:`Dear ${p.manager},\n\nProject "${p.name}" is overdue.\n\nDue Date: ${fmtDate(p.dueDate)}\nCurrent Status: ${p.status}\nProgress: ${p.progress||0}%\n\nPlease update the project status or revise the timeline.\n\nDIC-NHAI CRM System`
+          })}).catch(()=>{});
+      }
+      p._delayNotified = true;
+      persistLocal();
+    }
+  });
+
+  state.tasks.forEach(t => {
+    if (!t.dueDate || t.status==='Done' || t._delayNotified) return;
+    const due = new Date(t.dueDate);
+    if (due < now) {
+      pushNotif(`Task Overdue: ${t.title}`, `Assigned to ${t.assignee||'unassigned'} — due ${fmtDate(t.dueDate)}`, '⚠️','warning');
+      t._delayNotified = true;
+      persistLocal();
+    }
+  });
+
+  state.milestones.forEach(m => {
+    if (!m.date || m.status==='Completed' || m._delayNotified) return;
+    const due = new Date(m.date);
+    if (due < now) {
+      pushNotif(`Milestone Missed: ${m.name}`, `Target was ${fmtDate(m.date)}`, '🎯','warning');
+      m._delayNotified = true;
+      persistLocal();
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 2: ROLES & RESPONSIBILITY CONTROLS (RBAC MANAGEMENT UI)
+// ══════════════════════════════════════════════════════════════════
+
+const ROLE_DEFINITIONS = {
+  admin:     { label:'Administrator', icon:'👑', color:'#7c3aed', bg:'#f3e8ff', desc:'Full access to all modules, users, and settings.', permissions:['contacts','leads','tickets','projects','reports','users','approvals','documents','kpi'] },
+  manager:   { label:'Manager',       icon:'🏢', color:'#2563eb', bg:'#eff6ff', desc:'Can manage contacts, leads, tickets, projects. Cannot manage users.', permissions:['contacts','leads','tickets','projects','reports','approvals','documents','kpi'] },
+  sales_rep: { label:'Sales Rep',     icon:'💼', color:'#d97706', bg:'#fef3c7', desc:'Can create and update contacts, leads. Read-only tickets.',          permissions:['contacts','leads','tickets_read'] },
+  viewer:    { label:'Viewer',        icon:'👁',  color:'#64748b', bg:'#f1f5f9', desc:'Read-only access to all data.',                                      permissions:['contacts_read','leads_read','tickets_read'] },
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 3: EDUCATION QUALIFICATION IN CONTACT DETAILS
+// ══════════════════════════════════════════════════════════════════
+
+// Extend saveContact to include education fields
+const _prevSaveContact = saveContact;
+window.saveContact = async function() {
+  // Call original save
+  await _prevSaveContact();
+  // Education fields are stored locally (API extension would require schema change)
+  // They get saved when the contact is created; we'll store them by email
+};
+
+// Patch saveContact to include education in API payload
+const _origSaveContactFn = saveContact;
+window.saveContact = async function() {
+  const errEl = q('contactFormError');
+  const btn   = q('saveContactBtn');
+  if (errEl) errEl.textContent = '';
+  if (!state.session) { if(errEl) errEl.textContent='Please log in first.'; return; }
+  const name  = q('c_name').value.trim();
+  const email = q('c_email').value.trim();
+  const phone = q('c_phone').value.trim();
+  const secEmail = q('c_secEmail').value.trim();
+  const age   = q('c_age').value.trim();
+  let valid=true, firstError='';
+  if (!name) { firstError='Full Name is required.'; valid=false; }
+  else if (name.length<2) { firstError='Full Name must be at least 2 characters.'; valid=false; }
+  if (!email) { firstError=firstError||'Primary Email is required.'; valid=false; }
+  else if (!isEmail(email)) { firstError=firstError||'Primary Email is not valid.'; valid=false; }
+  if (secEmail && !isEmail(secEmail)) { firstError=firstError||'Secondary Email is not valid.'; valid=false; }
+  if (phone && !isValidPhone(phone)) { firstError=firstError||'Mobile number must be 10 digits starting with 6–9.'; valid=false; }
+  if (age && (isNaN(Number(age))||Number(age)<1||Number(age)>120)) { firstError=firstError||'Age must be between 1 and 120.'; valid=false; }
+  if (!valid) { if(errEl) errEl.textContent=firstError; return; }
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  const ok = await apiCreate('contacts', {
+    name, email,
+    secondaryEmail: secEmail,
+    phone: phone ? normalisePhoneDisplay(phone) : '',
+    company:  q('c_company')?.value.trim()||'',
+    gender:   q('c_gender')?.value||'',
+    age:      age?Number(age):null,
+    location: q('c_location')?.value.trim()||'',
+    // Education fields stored as extra data
+    qualification: q('c_qualification')?.value||'',
+    specialization:q('c_specialization')?.value.trim()||'',
+    university:    q('c_university')?.value.trim()||'',
+    designation:   q('c_designation')?.value.trim()||'',
+  });
+  if(btn){btn.disabled=false;btn.textContent='Save Contact';}
+  if(ok){
+    ['c_name','c_email','c_secEmail','c_phone','c_company','c_age','c_location','c_specialization','c_university','c_designation'].forEach(id=>{const el=q(id);if(el)el.value='';});
+    q('c_gender').value=''; q('c_qualification').value='';
+    closeModal('contactModal');
+    const r=await apiFetch('/contacts');
+    if(r&&r.ok) state.contacts=await r.json();
+    renderAll();
+  } else {
+    if(errEl) errEl.textContent='Save failed — check API server on port 3002.';
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  FEATURE 5: PERFORMANCE MANAGEMENT KPIs
+// ══════════════════════════════════════════════════════════════════
+
+if (!state.kpis || !state.kpis.length) {
+  state.kpis = [
+  { id:'kpi_1', name:'Lead Conversion Rate',    category:'Sales',           target:25,  current:0,  unit:'%',     role:'sales_rep', period:'Monthly',   desc:'% of leads converted to won deals' },
+  { id:'kpi_2', name:'Ticket Resolution Rate',  category:'Support',         target:90,  current:0,  unit:'%',     role:'manager',   period:'Monthly',   desc:'% of tickets resolved within SLA' },
+  { id:'kpi_3', name:'Active Projects On Time', category:'Projects',        target:80,  current:0,  unit:'%',     role:'manager',   period:'Quarterly', desc:'% of projects delivered on or before due date' },
+  { id:'kpi_4', name:'New Contacts Added',      category:'Productivity',    target:50,  current:0,  unit:'count', role:'sales_rep', period:'Monthly',   desc:'Number of new contacts added to CRM' },
+  { id:'kpi_5', name:'Revenue Won (₹)',         category:'Sales',           target:5000000, current:0, unit:'₹', role:'admin',     period:'Quarterly', desc:'Total value of won leads' },
+  { id:'kpi_6', name:'Customer Health Score',   category:'Customer Success',target:70,  current:0,  unit:'avg',   role:'manager',   period:'Monthly',   desc:'Average customer health score across all contacts' },
+];;
+}
+
+function saveKpiState() { localStorage.setItem('crm_kpis', JSON.stringify(state.kpis)); }
+
+function computeKpiActuals() {
+  // Auto-compute current values from live data
+  state.kpis.forEach(k => {
+    if (k.id==='kpi_1') {
+      const total=state.leads.length; const won=state.leads.filter(l=>l.stage==='Won').length;
+      k.current=total?Math.round(won/total*100):0;
+    }
+    if (k.id==='kpi_2') {
+      const total=state.tickets.length; const res=state.tickets.filter(t=>t.status==='Resolved').length;
+      k.current=total?Math.round(res/total*100):0;
+    }
+    if (k.id==='kpi_3') {
+      const active=state.projects.filter(p=>p.status!=='Completed'&&p.dueDate);
+      const onTime=active.filter(p=>new Date(p.dueDate)>=new Date()).length;
+      k.current=active.length?Math.round(onTime/active.length*100):100;
+    }
+    if (k.id==='kpi_4') k.current=state.contacts.length;
+    if (k.id==='kpi_5') k.current=state.leads.filter(l=>l.stage==='Won').reduce((s,l)=>s+(l.value||0),0);
+    if (k.id==='kpi_6') {
+      const scores=state.contacts.map(c=>calcHealthScore(c.id).score);
+      k.current=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+    }
+  });
+}
+
+function saveKpi() {
+  const name = q('kpiName')?.value.trim();
+  if (!name) { alert('KPI name is required.'); return; }
+  const kpi = {
+    id:      `kpi_${crypto.randomUUID().slice(0,8)}`,
+    name,
+    category:q('kpiCategory')?.value||'Custom',
+    target:  Number(q('kpiTarget')?.value)||100,
+    current: Number(q('kpiCurrent')?.value)||0,
+    unit:    q('kpiUnit')?.value.trim()||'',
+    role:    q('kpiRole')?.value||'',
+    period:  q('kpiPeriod')?.value||'Monthly',
+    desc:    q('kpiDesc')?.value.trim()||'',
+  };
+  state.kpis.push(kpi);
+  saveKpiState();
+  closeModal('newKpiModal');
+  ['kpiName','kpiTarget','kpiCurrent','kpiUnit','kpiDesc'].forEach(id=>{const el=q(id);if(el)el.value='';});
+  renderPerformance();
+  pushNotif(`KPI added: ${name}`, `Target: ${kpi.target}${kpi.unit} · ${kpi.period}`, '📊','success');
+}
+
+function renderPerformance() {
+  computeKpiActuals();
+  const roleFilter = q('kpiRoleFilter')?.value||'';
+  let kpis = state.kpis.filter(k=>!roleFilter||k.role===roleFilter||k.role==='');
+
+  // Summary bar
+  const summaryEl = q('kpiSummaryBar');
+  if (summaryEl) {
+    const onTrack  = state.kpis.filter(k=>k.current>=k.target*0.8).length;
+    const atRisk   = state.kpis.filter(k=>k.current>=k.target*0.5&&k.current<k.target*0.8).length;
+    const critical = state.kpis.filter(k=>k.current<k.target*0.5).length;
+    summaryEl.innerHTML = `
+      <div class="kpi-summary-card"><div class="kpi-summary-val">${state.kpis.length}</div><div class="kpi-summary-label">Total KPIs</div></div>
+      <div class="kpi-summary-card"><div class="kpi-summary-val" style="color:#16a34a">${onTrack}</div><div class="kpi-summary-label">On Track</div></div>
+      <div class="kpi-summary-card"><div class="kpi-summary-val" style="color:#d97706">${atRisk}</div><div class="kpi-summary-label">At Risk</div></div>
+      <div class="kpi-summary-card"><div class="kpi-summary-val" style="color:#e11d48">${critical}</div><div class="kpi-summary-label">Critical</div></div>`;
+  }
+
+  // Role performance cards
+  const roleCards = q('kpiRoleCards');
+  if (roleCards) {
+    roleCards.innerHTML = Object.entries(ROLE_DEFINITIONS).map(([role,def])=>{
+      const roleKpis = state.kpis.filter(k=>k.role===role||k.role==='');
+      if (!roleKpis.length) return '';
+      const avg = roleKpis.reduce((s,k)=>s+Math.min(100,k.target?Math.round(k.current/k.target*100):0),0)/roleKpis.length;
+      const color = avg>=80?'#16a34a':avg>=50?'#d97706':'#e11d48';
+      return `<div class="kpi-role-card" style="border-top:3px solid ${def.color}">
+        <div class="kpi-role-card-header">
+          <div class="kpi-role-icon" style="background:${def.bg}">${def.icon}</div>
+          <div>
+            <div class="kpi-role-name">${def.label}</div>
+            <div style="font-size:.72rem;color:var(--text-3)">${roleKpis.length} KPIs</div>
+          </div>
+        </div>
+        <div class="kpi-role-score" style="color:${color}">${Math.round(avg)}%</div>
+        <div class="kpi-score-bar"><div class="kpi-score-fill" style="width:${Math.round(avg)}%;background:${color}"></div></div>
+        <div class="kpi-role-breakdown">${def.desc}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // KPI list
+  const listEl = q('kpiList');
+  if (!listEl) return;
+  if (!kpis.length) { listEl.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--text-3)">No KPIs found.</div>'; return; }
+
+  const catColors = { Sales:'#2563eb', Support:'#d97706', Projects:'#16a34a', Productivity:'#7c3aed', 'Customer Success':'#0d9488', Custom:'#64748b' };
+
+  listEl.innerHTML = kpis.map(k => {
+    const pct    = k.target ? Math.min(100, Math.round(k.current/k.target*100)) : 0;
+    const color  = pct>=80?'#16a34a':pct>=50?'#d97706':'#e11d48';
+    const catColor = catColors[k.category]||'#64748b';
+    const roleDef = ROLE_DEFINITIONS[k.role];
+    return `<div class="kpi-item">
+      <div style="width:10px;height:40px;border-radius:3px;background:${catColor};flex-shrink:0"></div>
+      <div class="kpi-item-info">
+        <div class="kpi-item-name">${k.name}</div>
+        <div class="kpi-item-meta">
+          ${k.category} · ${k.period}
+          ${roleDef?` · <span style="color:${roleDef.color}">${roleDef.icon} ${roleDef.label}</span>`:''}
+          ${k.desc?` — ${k.desc.slice(0,60)}${k.desc.length>60?'…':''}`:''}</div>
+      </div>
+      <div class="kpi-item-progress">
+        <div class="kpi-progress-label">
+          <span style="color:${color};font-weight:700">${k.current}${k.unit==='%'?'%':''} ${k.unit!=='%'?k.unit:''}</span>
+          <span style="color:var(--text-3)">/ ${k.target}${k.unit==='%'?'%':''} ${k.unit!=='%'?k.unit:''}</span>
+        </div>
+        <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+      <div class="kpi-item-pct" style="color:${color}">${pct}%</div>
+      <div class="kpi-item-actions">
+        <button class="cca-btn" onclick="updateKpiValue('${k.id}')">✏</button>
+        <button class="cca-btn cca-danger" onclick="deleteKpi('${k.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateKpiValue(id) {
+  const k = state.kpis.find(x=>x.id===id);
+  if (!k) return;
+  const val = prompt(`Update current value for "${k.name}"\nTarget: ${k.target}${k.unit}\nCurrent: ${k.current}${k.unit}\n\nEnter new current value:`);
+  if (val===null) return;
+  if (isNaN(Number(val))) { alert('Please enter a valid number.'); return; }
+  k.current = Number(val);
+  saveKpiState();
+  renderPerformance();
+}
+
+function deleteKpi(id) {
+  if (!confirm('Delete this KPI?')) return;
+  state.kpis = state.kpis.filter(x=>x.id!==id);
+  saveKpiState();
+  renderPerformance();
 }
 
