@@ -1,7 +1,8 @@
 // ── Config ────────────────────────────────────────────────────────────────────
-// API paths — resolved relative to current origin via Nginx proxy
-const API      = window.location.origin + '/api';
-const SMTP_API = window.location.origin + '/smtp';
+// API paths — auto-detect: production uses Nginx proxy, dev uses localhost
+const _isDev   = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API      = _isDev ? 'http://localhost:3002' : window.location.origin + '/api';
+const SMTP_API = _isDev ? 'http://localhost:3001' : window.location.origin + '/smtp';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
