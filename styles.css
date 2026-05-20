@@ -1501,3 +1501,148 @@ dialog::backdrop { background: rgba(15,23,42,.5); backdrop-filter: blur(2px); }
 
 /* Remove dimming on no-phone contacts */
 .chat-contact-item.no-phone { opacity: 1; cursor: pointer; }
+
+/* ══════════════════════════════════════════════════════
+   ACCOUNTS & CONTACTS — Redesigned UI
+══════════════════════════════════════════════════════ */
+
+/* ── Toolbar ── */
+.contacts-toolbar {
+  display: flex; align-items: center; gap: .65rem;
+  margin-bottom: .75rem; flex-wrap: wrap;
+}
+.contacts-search-wrap {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: .5rem .85rem; flex: 1; min-width: 220px;
+  transition: border-color .15s;
+}
+.contacts-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,.15); }
+.contacts-search-icon { color: var(--text-3); font-size: .9rem; flex-shrink: 0; }
+.contacts-search-input { border: none; background: none; flex: 1; font-size: .88rem; color: var(--text); outline: none; }
+.contacts-filters { display: flex; gap: .4rem; }
+
+/* ── Contact Grid ── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: .85rem; margin-bottom: 1.5rem;
+}
+.contact-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 1.1rem;
+  box-shadow: var(--shadow); transition: all .2s;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.contact-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 8px 24px rgba(37,99,235,.1);
+  transform: translateY(-2px);
+}
+.contact-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), #7c3aed);
+  opacity: 0; transition: opacity .2s;
+}
+.contact-card:hover::before { opacity: 1; }
+.contact-card-top { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: .75rem; }
+.contact-card-avatar {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.1rem; color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.contact-card-info { flex: 1; min-width: 0; }
+.contact-card-name { font-weight: 700; font-size: .92rem; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-card-company { font-size: .75rem; color: var(--text-3); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-card-health { margin-left: auto; flex-shrink: 0; }
+.contact-card-details { display: flex; flex-direction: column; gap: 3px; margin-bottom: .75rem; }
+.contact-card-detail { display: flex; align-items: center; gap: .4rem; font-size: .76rem; color: var(--text-2); }
+.contact-card-detail-icon { font-size: .8rem; flex-shrink: 0; width: 14px; }
+.contact-card-tags { display: flex; gap: .3rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.contact-card-tag { font-size: .65rem; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #eff6ff; color: var(--accent); }
+.contact-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: .65rem; margin-top: .1rem; }
+.contact-card-actions { display: flex; gap: .25rem; }
+.contact-card-action-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: .72rem; font-weight: 500; cursor: pointer; transition: all .12s; color: var(--text-2); }
+.contact-card-action-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--accent); }
+.contact-card-action-btn.danger:hover { background: #fff1f2; border-color: #fca5a5; color: var(--rose); }
+.contact-card-checkbox { position: absolute; top: .75rem; right: .75rem; width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+
+/* List view (toggle) */
+.contact-list-view { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.5rem; }
+.contact-list-item {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: .65rem 1rem;
+  display: flex; align-items: center; gap: .85rem;
+  transition: all .15s; cursor: pointer;
+}
+.contact-list-item:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(37,99,235,.08); }
+.contact-list-avatar { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; color: #fff; }
+.contact-list-info { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .25rem 1rem; align-items: center; }
+.contact-list-name { font-weight: 600; font-size: .85rem; }
+.contact-list-email { font-size: .78rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-list-location { font-size: .75rem; color: var(--text-3); }
+.contact-list-actions { display: flex; gap: .3rem; align-items: center; }
+
+/* Empty state */
+.contact-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; gap: .75rem; text-align: center; color: var(--text-3); font-size: .9rem; background: var(--surface); border: 1.5px dashed var(--border); border-radius: 14px; margin-bottom: 1.5rem; }
+
+/* ── Customer 360 Drawer ── */
+.c360-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(15,23,42,.4); backdrop-filter: blur(3px); display: flex; justify-content: flex-end; }
+.c360-drawer { width: 480px; height: 100%; background: var(--surface); box-shadow: -8px 0 40px rgba(0,0,0,.18); display: flex; flex-direction: column; animation: slideInRight2 .25s cubic-bezier(.22,1,.36,1); overflow: hidden; }
+@keyframes slideInRight2 { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+.c360-drawer-header { padding: 1.25rem 1.25rem .75rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .75rem; background: linear-gradient(135deg, #f8faff, #f0f4ff); }
+.c360-close-btn { background: var(--bg); border: 1px solid var(--border); width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; transition: all .15s; }
+.c360-close-btn:hover { background: #fee2e2; border-color: #fca5a5; color: var(--rose); }
+.c360-drawer-avatar { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.c360-drawer-name { font-weight: 800; font-size: 1.05rem; color: var(--text); }
+.c360-drawer-sub { font-size: .78rem; color: var(--text-2); margin-top: 2px; }
+.c360-drawer-actions { margin-left: auto; display: flex; gap: .35rem; }
+.c360-action { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .65rem; font-size: .75rem; font-weight: 600; cursor: pointer; transition: all .15s; color: var(--text-2); }
+.c360-action:hover { background: #eff6ff; border-color: #93c5fd; color: var(--accent); }
+.c360-drawer-tabs { display: flex; border-bottom: 2px solid var(--border); padding: 0 1rem; gap: 0; flex-shrink: 0; }
+.c360-tab { background: none; border: none; padding: .7rem .9rem; font-size: .82rem; font-weight: 600; color: var(--text-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.c360-tab:hover { color: var(--text); }
+.c360-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.c360-drawer-body { flex: 1; overflow-y: auto; padding: 1.1rem 1.25rem; }
+
+/* 360 content blocks */
+.c360-stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: .65rem; margin-bottom: 1.1rem; }
+.c360-stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .75rem; text-align: center; }
+.c360-stat-card-val { font-size: 1.4rem; font-weight: 800; font-family: var(--mono); color: var(--accent); }
+.c360-stat-card-label { font-size: .68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.c360-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .75rem; margin-bottom: 1rem; }
+.c360-info-item { font-size: .8rem; }
+.c360-info-key { color: var(--text-3); font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.c360-info-val { color: var(--text); font-weight: 500; }
+.c360-sub-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin: 1rem 0 .45rem; padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+.c360-record-row { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid #f1f5f9; font-size: .8rem; }
+.c360-record-row:last-child { border-bottom: none; }
+
+/* ── Account Cards ── */
+.accounts-section { margin-top: 2rem; }
+.accounts-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .85rem; }
+.accounts-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+.account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: .85rem; }
+.account-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 1.1rem;
+  box-shadow: var(--shadow); transition: all .2s;
+  display: flex; flex-direction: column; gap: .65rem;
+}
+.account-card:hover { border-color: #93c5fd; box-shadow: 0 6px 20px rgba(37,99,235,.1); transform: translateY(-1px); }
+.account-card-header { display: flex; align-items: center; gap: .75rem; }
+.account-card-icon { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg,#f1f5f9,#e2e8f0); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+.account-card-name { font-weight: 700; font-size: .92rem; }
+.account-card-tier { margin-left: auto; }
+.account-card-renewal { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-radius: 8px; padding: .45rem .65rem; font-size: .78rem; }
+.account-card-renewal-label { color: var(--text-3); }
+.account-card-renewal-date { font-family: var(--mono); font-weight: 600; }
+.account-card-renewal-date.soon { color: var(--rose); }
+.account-card-actions { display: flex; gap: .3rem; }
+
+@media(max-width:900px) {
+  .contact-grid { grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); }
+  .c360-drawer { width: 100%; }
+  .contact-list-info { grid-template-columns: 1fr 1fr; }
+}

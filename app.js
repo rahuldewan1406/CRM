@@ -82,6 +82,8 @@ let _pendingFiles = [];
 let _renamingDocId = null;
 let _activeDocId = null;
 let _cityHighlightIdx = -1;
+let _contactViewMode = 'grid'; // 'grid' | 'list'
+let _c360ContactId = null;
 
 
 const REPORT_CONFIG = {
@@ -833,33 +835,127 @@ function renderDashboard() {
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
 function filterContacts() {
-  const q2 = q('contactSearch').value.toLowerCase();
-  const list = state.contacts.filter(c=>c.name.toLowerCase().includes(q2)||c.email.toLowerCase().includes(q2)||(c.company||'').toLowerCase().includes(q2));
+  const search  = (q('contactSearch')?.value||'').toLowerCase();
+  const company = q('contactCompanyFilter')?.value||'';
+  const location= q('contactLocationFilter')?.value||'';
+  const list = state.contacts.filter(c=>{
+    if (search && !c.name.toLowerCase().includes(search) && !c.email.toLowerCase().includes(search) && !(c.company||'').toLowerCase().includes(search) && !(c.location||'').toLowerCase().includes(search)) return false;
+    if (company  && c.company  !== company)  return false;
+    if (location && c.location !== location) return false;
+    return true;
+  });
   renderContactList(list);
 }
 function renderContactList(list) {
-  const canE=state.session&&can('contacts.update'), canD=state.session&&can('contacts.delete');
-  q('contactList').innerHTML = list.map(c=>`
-    <li>
-      <div class="record-main">
-        <div class="record-name">${c.name}</div>
-        <div class="record-sub">${c.company||''} · ${c.email} · ${c.location||''}</div>
-      </div>
-      ${getHealthBadge(c.id)}
-      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋</button>
-      ${actBtns('contacts',c.id,canE,canD)}
-    </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No contacts. Log in and add one.</li>';
+  const canE = state.session&&can('contacts.update');
+  const canD = state.session&&can('contacts.delete');
+  const wrap  = q('contactList');
+  const empty = q('contactEmpty');
+  if (!list.length) {
+    if(wrap) wrap.innerHTML='';
+    if(empty) empty.classList.remove('hidden');
+    return;
+  }
+  if(empty) empty.classList.add('hidden');
+  if (_contactViewMode === 'grid') {
+    wrap.className='contact-grid';
+    wrap.innerHTML=list.map(c=>{
+      const h=c._health||{score:50,grade:'C'};
+      const color=avatarColor(c.name);
+      const sel=_bulkSelected.contacts.has(c.id);
+      return `<div class="contact-card" onclick="openC360('${c.id}')">
+        <input type="checkbox" class="contact-card-checkbox" ${sel?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" />
+        <div class="contact-card-top">
+          <div class="contact-card-avatar" style="background:${color}">${c.name.charAt(0).toUpperCase()}</div>
+          <div class="contact-card-info">
+            <div class="contact-card-name">${c.name}</div>
+            <div class="contact-card-company">${c.company||'—'}</div>
+          </div>
+          <span class="health-badge health-${h.grade}" style="margin-left:auto;flex-shrink:0">${h.grade}${h.score}</span>
+        </div>
+        <div class="contact-card-details">
+          <div class="contact-card-detail"><span class="contact-card-detail-icon">📧</span>${c.email}</div>
+          ${c.phone?`<div class="contact-card-detail"><span class="contact-card-detail-icon">📱</span>${c.phone}</div>`:''}
+          ${c.location?`<div class="contact-card-detail"><span class="contact-card-detail-icon">📍</span>${c.location}</div>`:''}
+        </div>
+        ${c.company?`<div class="contact-card-tags"><span class="contact-card-tag">🏢 ${c.company}</span></div>`:''}
+        <div class="contact-card-footer">
+          <div class="contact-card-actions">
+            ${canE?`<button class="contact-card-action-btn" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">✏ Edit</button>`:''}
+            ${canD?`<button class="contact-card-action-btn danger" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">🗑</button>`:''}
+            <button class="contact-card-action-btn" onclick="event.stopPropagation();quickVideoCall('${c.id}')" title="Video Call">📹</button>
+            <button class="contact-card-action-btn" onclick="event.stopPropagation();openTimeline('${c.id}')" title="Timeline">📋</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    wrap.className='contact-list-view';
+    wrap.innerHTML=list.map(c=>{
+      const color=avatarColor(c.name);
+      const h=c._health||{score:50,grade:'C'};
+      const sel=_bulkSelected.contacts.has(c.id);
+      return `<div class="contact-list-item" onclick="openC360('${c.id}')">
+        <input type="checkbox" ${sel?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0" />
+        <div class="contact-list-avatar" style="background:${color}">${c.name.charAt(0)}</div>
+        <div class="contact-list-info">
+          <div class="contact-list-name">${c.name} <span class="health-badge health-${h.grade}" style="font-size:.62rem">${h.grade}</span></div>
+          <div class="contact-list-email">${c.email}</div>
+          <div class="contact-list-location">📍 ${c.location||'—'} · 🏢 ${c.company||'—'}</div>
+        </div>
+        <div class="contact-list-actions">
+          ${canE?`<button class="btn-edit" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">Edit</button>`:''}
+          ${canD?`<button class="btn-delete" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">Delete</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 function renderCustomers() {
-  renderContactList(state.contacts);
-  q('accountList').innerHTML = state.accounts.map(a=>`
-    <li>
-      <div class="record-main">
-        <div class="record-name">${a.name} <span class="${badgeClass(a.tier||'SMB')}">${a.tier}</span></div>
-        <div class="record-sub">Renewal: ${fmtDate(a.renewalDate)}</div>
-      </div>
-      ${actBtns('accounts',a.id)}
-    </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No accounts yet.</li>';
+  // Populate filter dropdowns
+  const companies  = [...new Set(state.contacts.map(c=>c.company).filter(Boolean))].sort();
+  const locations  = [...new Set(state.contacts.map(c=>c.location).filter(Boolean))].sort();
+  const compEl = q('contactCompanyFilter');
+  const locEl  = q('contactLocationFilter');
+  if (compEl) compEl.innerHTML = '<option value="">All Companies</option>' + companies.map(c=>`<option>${c}</option>`).join('');
+  if (locEl)  locEl.innerHTML  = '<option value="">All Locations</option>'  + locations.map(l=>`<option>${l}</option>`).join('');
+
+  filterContacts();
+
+  // Account cards
+  const accountWrap  = q('accountList');
+  const accountEmpty = q('accountEmpty');
+  const now = Date.now();
+  if (!state.accounts.length) {
+    if (accountWrap)  accountWrap.innerHTML = '';
+    if (accountEmpty) accountEmpty.classList.remove('hidden');
+  } else {
+    if (accountEmpty) accountEmpty.classList.add('hidden');
+    accountWrap.innerHTML = state.accounts.map(a => {
+      const daysLeft = a.renewalDate ? Math.ceil((new Date(a.renewalDate)-now)/86400000) : null;
+      const isSoon   = daysLeft!==null && daysLeft<=30;
+      const tierIcon = {Enterprise:'🏛',  'Mid-Market':'🏢', SMB:'🏠'}[a.tier] || '🏢';
+      return `<div class="account-card">
+        <div class="account-card-header">
+          <div class="account-card-icon">${tierIcon}</div>
+          <div>
+            <div class="account-card-name">${a.name}</div>
+          </div>
+          <div class="account-card-tier"><span class="${badgeClass(a.tier||'SMB')}">${a.tier||'SMB'}</span></div>
+        </div>
+        <div class="account-card-renewal">
+          <span class="account-card-renewal-label">📅 Renewal</span>
+          <span class="account-card-renewal-date ${isSoon?'soon':''}">
+            ${daysLeft===null?'—':daysLeft<=0?'Overdue':isSoon?daysLeft+'d left':fmtDate(a.renewalDate)}
+          </span>
+        </div>
+        <div class="account-card-actions">
+          ${actBtns('accounts',a.id)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   q('contactEmailCount').textContent = state.contacts.filter(c=>c.email).length;
   syncContactDropdowns();
 }
@@ -1873,6 +1969,106 @@ async function diagnoseVideoCall() {
   alert('Video Call Diagnostics:\n\n' + lines);
 }
 
+
+// ── Contact view toggle ───────────────────────────────────────────
+function toggleContactView() {
+  _contactViewMode = _contactViewMode === 'grid' ? 'list' : 'grid';
+  const btn = q('contactViewToggle');
+  if (btn) btn.textContent = _contactViewMode === 'grid' ? '⊞ Grid' : '☰ List';
+  filterContacts();
+}
+
+// ── Customer 360 Drawer ───────────────────────────────────────────
+function openC360(contactId) {
+  _c360ContactId = contactId;
+  const c = state.contacts.find(x=>x.id===contactId);
+  if (!c) return;
+
+  const overlay = q('customer360Overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+
+  const color = avatarColor(c.name);
+  q('c360DrawerAvatar').style.background = color;
+  q('c360DrawerAvatar').textContent = c.name.charAt(0).toUpperCase();
+  q('c360DrawerName').textContent   = c.name;
+  q('c360DrawerSub').textContent    = [c.company, c.location].filter(Boolean).join(' · ');
+  q('c360DrawerActions').innerHTML  = `
+    <button class="c360-action" onclick="openEditDialog('contacts','${c.id}')">✏ Edit</button>
+    <button class="c360-action" onclick="openTimeline('${c.id}')">📋 Timeline</button>
+    <button class="c360-action" onclick="quickVideoCall('${c.id}')">📹 Call</button>`;
+
+  switchC360Tab('overview', document.querySelector('.c360-tab'));
+}
+
+function closeC360() {
+  const overlay = q('customer360Overlay');
+  if (overlay) overlay.classList.add('hidden');
+  _c360ContactId = null;
+}
+
+// Close drawer on overlay click
+q('customer360Overlay')?.addEventListener('click', e => {
+  if (e.target === q('customer360Overlay')) closeC360();
+});
+
+function switchC360Tab(tab, btn) {
+  document.querySelectorAll('.c360-tab').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const c = state.contacts.find(x=>x.id===_c360ContactId);
+  if (!c) return;
+  const body = q('c360DrawerBody');
+  if (!body) return;
+
+  const myLeads    = state.leads.filter(l=>l.contact_id===c.id);
+  const myTickets  = state.tickets.filter(t=>t.contact_id===c.id);
+  const myProjects = state.projects.filter(p=>p.contactId===c.id);
+  const myActs     = state.activities.filter(a=>a.contactId===c.id);
+  const myDocs     = state.documents.filter(d=>{ const p=state.projects.find(x=>x.id===d.projectId); return p?.contactId===c.id; });
+  const h          = c._health || calcHealthScore(c.id);
+
+  if (tab === 'overview') {
+    const wonVal = myLeads.filter(l=>l.stage==='Won').reduce((s,l)=>s+(l.value||0),0);
+    body.innerHTML = `
+      <div class="c360-stat-row">
+        <div class="c360-stat-card"><div class="c360-stat-card-val">${myLeads.length}</div><div class="c360-stat-card-label">Leads</div></div>
+        <div class="c360-stat-card"><div class="c360-stat-card-val">${myTickets.filter(t=>t.status!=='Resolved').length}</div><div class="c360-stat-card-label">Open Tickets</div></div>
+        <div class="c360-stat-card"><div class="c360-stat-card-val">${myProjects.length}</div><div class="c360-stat-card-label">Projects</div></div>
+      </div>
+      <div class="c360-info-grid">
+        <div class="c360-info-item"><div class="c360-info-key">Email</div><div class="c360-info-val">${c.email}</div></div>
+        <div class="c360-info-item"><div class="c360-info-key">Phone</div><div class="c360-info-val">${c.phone||'—'}</div></div>
+        <div class="c360-info-item"><div class="c360-info-key">Company</div><div class="c360-info-val">${c.company||'—'}</div></div>
+        <div class="c360-info-item"><div class="c360-info-key">Location</div><div class="c360-info-val">${c.location||'—'}</div></div>
+        <div class="c360-info-item"><div class="c360-info-key">Age / Gender</div><div class="c360-info-val">${c.age||'—'} · ${c.gender||'—'}</div></div>
+        <div class="c360-info-item"><div class="c360-info-key">Health Score</div><div class="c360-info-val"><span class="health-badge health-${h.grade}">${h.grade} ${h.score}/100</span></div></div>
+      </div>
+      ${myLeads.length?`<div class="c360-sub-title">Total Lead Value</div><div style="font-size:1.3rem;font-weight:800;font-family:var(--mono);color:var(--accent)">₹${fmtMoney(wonVal)} won</div>`:''}
+    `;
+  } else if (tab === 'activity') {
+    const icons = {Call:'📞',Meeting:'🤝',Demo:'💻','Follow-up':'🔁',Email:'📧',Note:'📝',Chat:'💬'};
+    body.innerHTML = myActs.length
+      ? `<div class="c360-sub-title">${myActs.length} Activities</div>` +
+        myActs.slice(0,15).map(a=>`<div class="c360-record-row"><span style="font-size:.9rem">${icons[a.type]||'📋'}</span><div style="flex:1"><strong>${a.type}</strong> — ${a.note.slice(0,70)}</div><span style="font-size:.7rem;color:var(--text-3)">${timeAgo(a.created_at||new Date().toISOString())}</span></div>`).join('')
+      : '<p style="color:var(--text-3);font-size:.85rem;padding:.5rem">No activities logged yet.</p>';
+  } else if (tab === 'deals') {
+    body.innerHTML = myLeads.length
+      ? `<div class="c360-sub-title">${myLeads.length} Leads</div>` +
+        myLeads.map(l=>`<div class="c360-record-row"><span class="${badgeClass(l.stage)}">${l.stage}</span><span style="flex:1;margin-left:.5rem">${l.title}</span><span style="font-family:var(--mono);font-size:.8rem;color:var(--accent)">₹${fmtMoney(l.value)}</span></div>`).join('')
+      : '<p style="color:var(--text-3);font-size:.85rem;padding:.5rem">No leads linked to this contact.</p>';
+  } else if (tab === 'tickets') {
+    body.innerHTML = myTickets.length
+      ? `<div class="c360-sub-title">${myTickets.length} Tickets</div>` +
+        myTickets.map(t=>`<div class="c360-record-row"><span class="${badgeClass(t.status)}">${t.status}</span><span style="flex:1;margin-left:.5rem">${t.title}</span><span class="${badgeClass(t.priority)}">${t.priority}</span></div>`).join('')
+      : '<p style="color:var(--text-3);font-size:.85rem;padding:.5rem">No tickets linked to this contact.</p>';
+  } else if (tab === 'docs') {
+    body.innerHTML = myDocs.length
+      ? `<div class="c360-sub-title">${myDocs.length} Documents</div>` +
+        myDocs.map(d=>`<div class="c360-record-row"><span style="font-size:1.1rem">${fileIcon(d.name)}</span><span style="flex:1;font-size:.8rem">${d.name}</span><span style="font-size:.72rem;color:var(--text-3)">${fmtSize(d.size)}</span><button class="contact-card-action-btn" onclick="downloadDoc('${d.id}')">⬇</button></div>`).join('')
+      : '<p style="color:var(--text-3);font-size:.85rem;padding:.5rem">No documents linked to this contact.</p>';
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 // Show login screen on load (hide main app until authenticated)
 const _loginScreen = q('loginScreen');
@@ -2784,21 +2980,7 @@ async function bulkResolveTickets() {
   pushNotif(`${ids.length} tickets resolved`, '', '✅', 'success');
 }
 
-// Inject checkboxes into list renders — patch renderContactList
-const _origRenderContactList = renderContactList;
-window.renderContactList = function(list) {
-  const canE=state.session&&can('contacts.update'), canD=state.session&&can('contacts.delete');
-  q('contactList').innerHTML = list.map(c=>`
-    <li>
-      <input type="checkbox" class="bulk-checkbox" ${_bulkSelected.contacts.has(c.id)?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" />
-      <div class="record-main">
-        <div class="record-name">${c.name} ${getHealthBadge(c.id)}</div>
-        <div class="record-sub">${c.company||''} · ${c.email} · ${c.location||''}</div>
-      </div>
-      <button class="btn-secondary-sm" style="font-size:.72rem;padding:3px 8px" onclick="openTimeline('${c.id}')">📋</button>
-      ${actBtns('contacts',c.id,canE,canD)}
-    </li>`).join('') || '<li style="color:var(--text-3);font-size:.82rem;padding:.5rem">No contacts. Log in and add one.</li>';
-};
+// renderContactList is now fully implemented above with grid/list views
 
 
 // ══════════════════════════════════════════════════════════════════

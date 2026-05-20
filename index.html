@@ -267,44 +267,90 @@
     ══════════════════════════════════════════════════ -->
     <section id="customers" class="page">
       <div class="page-header">
-        <h1>Accounts & Contacts</h1>
-        <button class="btn-primary-sm" onclick="openModal('contactModal')">+ New Contact</button>
-      </div>
-
-      <div class="two-col">
-        <!-- Contact list -->
-        <div class="panel">
-          <div class="panel-toolbar">
-            <input id="contactSearch" class="search-box" placeholder="🔍  Search contacts…" oninput="filterContacts()" />
-            <label class="bulk-select-all" title="Select all"><input type="checkbox" id="selectAllContacts" onchange="toggleSelectAll('contacts',this.checked)" />All</label>
-          </div>
-          <div id="bulkContactBar" class="bulk-action-bar hidden">
-            <span id="bulkContactCount" class="bulk-count">0 selected</span>
-            <button class="bulk-btn" onclick="bulkEmail('contacts')">📧 Email</button>
-            <button class="bulk-btn" onclick="bulkExport('contacts')">⬇ Export</button>
-            <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('contacts')">🗑 Delete</button>
-            <button class="bulk-btn-ghost" onclick="clearBulkSelection('contacts')">✕ Clear</button>
-          </div>
-          <ul id="contactList" class="record-list"></ul>
-        </div>
-
-        <!-- Customer 360 -->
-        <div class="panel">
-          <h3 class="panel-title">Customer 360°</h3>
-          <select id="customerSelect" class="full-select"><option value="">Select a contact…</option></select>
-          <div id="customer360" class="c360-panel">
-            <div class="c360-empty">Select a contact to view their full profile.</div>
-          </div>
+        <h1>Accounts &amp; Contacts</h1>
+        <div class="btn-group">
+          <button class="btn-secondary-sm" onclick="toggleContactView()" id="contactViewToggle">⊞ Grid</button>
+          <button class="btn-primary-sm" onclick="openModal('contactModal')">+ New Contact</button>
         </div>
       </div>
 
-      <!-- Accounts -->
-      <div class="section-divider">Accounts</div>
-      <div class="panel">
-        <div class="panel-toolbar">
+      <!-- Contact toolbar -->
+      <div class="contacts-toolbar">
+        <div class="contacts-search-wrap">
+          <span class="contacts-search-icon">🔍</span>
+          <input id="contactSearch" class="contacts-search-input" placeholder="Search by name, email, company, location…" oninput="filterContacts()" />
+        </div>
+        <div class="contacts-filters">
+          <select id="contactCompanyFilter" class="filter-select" onchange="filterContacts()">
+            <option value="">All Companies</option>
+          </select>
+          <select id="contactLocationFilter" class="filter-select" onchange="filterContacts()">
+            <option value="">All Locations</option>
+          </select>
+        </div>
+        <label class="bulk-select-all" style="margin-left:.5rem">
+          <input type="checkbox" id="selectAllContacts" onchange="toggleSelectAll('contacts',this.checked)" /> Select All
+        </label>
+      </div>
+
+      <!-- Bulk action bar -->
+      <div id="bulkContactBar" class="bulk-action-bar hidden">
+        <span id="bulkContactCount" class="bulk-count">0 selected</span>
+        <button class="bulk-btn" onclick="bulkEmail('contacts')">📧 Email Selected</button>
+        <button class="bulk-btn" onclick="bulkExport('contacts')">⬇ Export CSV</button>
+        <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete('contacts')">🗑 Delete</button>
+        <button class="bulk-btn-ghost" onclick="clearBulkSelection('contacts')">✕ Clear</button>
+      </div>
+
+      <!-- Contact grid/list -->
+      <div id="contactListWrap">
+        <div id="contactList" class="contact-grid"></div>
+        <div id="contactEmpty" class="contact-empty hidden">
+          <div style="font-size:2.5rem">👥</div>
+          <p>No contacts found.</p>
+          <button class="btn-primary-sm" onclick="openModal('contactModal')">+ Add First Contact</button>
+        </div>
+      </div>
+
+      <!-- Customer 360 modal-style panel (slide in on contact click) -->
+      <div id="customer360Overlay" class="c360-overlay hidden">
+        <div class="c360-drawer">
+          <div class="c360-drawer-header">
+            <button class="c360-close-btn" onclick="closeC360()">✕</button>
+            <div id="c360DrawerAvatar" class="c360-drawer-avatar"></div>
+            <div>
+              <div id="c360DrawerName" class="c360-drawer-name"></div>
+              <div id="c360DrawerSub" class="c360-drawer-sub"></div>
+            </div>
+            <div id="c360DrawerActions" class="c360-drawer-actions"></div>
+          </div>
+          <div class="c360-drawer-tabs">
+            <button class="c360-tab active" onclick="switchC360Tab('overview',this)">Overview</button>
+            <button class="c360-tab" onclick="switchC360Tab('activity',this)">Activity</button>
+            <button class="c360-tab" onclick="switchC360Tab('deals',this)">Deals</button>
+            <button class="c360-tab" onclick="switchC360Tab('tickets',this)">Tickets</button>
+            <button class="c360-tab" onclick="switchC360Tab('docs',this)">Docs</button>
+          </div>
+          <div id="c360DrawerBody" class="c360-drawer-body"></div>
+        </div>
+      </div>
+
+      <!-- Hidden select for legacy renderC360 compat -->
+      <select id="customerSelect" class="hidden"></select>
+      <div id="customer360" class="hidden"></div>
+
+      <!-- Accounts section -->
+      <div class="accounts-section">
+        <div class="accounts-section-header">
+          <h2 class="accounts-title">🏢 Accounts</h2>
           <button class="btn-primary-sm" onclick="openModal('accountModal')">+ New Account</button>
         </div>
-        <ul id="accountList" class="record-list"></ul>
+        <div id="accountList" class="account-cards"></div>
+        <div id="accountEmpty" class="contact-empty hidden">
+          <div style="font-size:2rem">🏢</div>
+          <p>No accounts yet.</p>
+          <button class="btn-primary-sm" onclick="openModal('accountModal')">+ Add Account</button>
+        </div>
       </div>
     </section>
 
