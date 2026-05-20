@@ -847,69 +847,108 @@ function filterContacts() {
   renderContactList(list);
 }
 function renderContactList(list) {
-  const canE = state.session&&can('contacts.update');
-  const canD = state.session&&can('contacts.delete');
+  const canE = state.session && can('contacts.update');
+  const canD = state.session && can('contacts.delete');
   const wrap  = q('contactList');
   const empty = q('contactEmpty');
   if (!list.length) {
-    if(wrap) wrap.innerHTML='';
-    if(empty) empty.classList.remove('hidden');
+    if (wrap)  wrap.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
     return;
   }
-  if(empty) empty.classList.add('hidden');
+  if (empty) empty.classList.add('hidden');
+
   if (_contactViewMode === 'grid') {
-    wrap.className='contact-grid';
-    wrap.innerHTML=list.map(c=>{
-      const h=c._health||{score:50,grade:'C'};
-      const color=avatarColor(c.name);
-      const sel=_bulkSelected.contacts.has(c.id);
-      return `<div class="contact-card" onclick="openC360('${c.id}')">
-        <input type="checkbox" class="contact-card-checkbox" ${sel?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" />
-        <div class="contact-card-top">
-          <div class="contact-card-avatar" style="background:${color}">${c.name.charAt(0).toUpperCase()}</div>
-          <div class="contact-card-info">
-            <div class="contact-card-name">${c.name}</div>
-            <div class="contact-card-company">${c.company||'—'}</div>
+    wrap.className = 'contact-grid';
+    wrap.innerHTML = list.map(c => {
+      const h     = c._health || calcHealthScore(c.id);
+      const color = avatarColor(c.name);
+      const sel   = _bulkSelected.contacts.has(c.id);
+      const tags  = c.tags ? (Array.isArray(c.tags) ? c.tags : c.tags.split(',')) : [];
+      return `
+        <div class="contact-card ${sel?'contact-card-selected':''}" onclick="openC360('${c.id}')">
+
+          <!-- Checkbox top-left -->
+          <div class="contact-card-checkbox-wrap" onclick="event.stopPropagation()">
+            <input type="checkbox" class="contact-card-check" ${sel?'checked':''}
+              onchange="selectContactCard('${c.id}',this.checked,event)" />
           </div>
-          <span class="health-badge health-${h.grade}" style="margin-left:auto;flex-shrink:0">${h.grade}${h.score}</span>
-        </div>
-        <div class="contact-card-details">
-          <div class="contact-card-detail"><span class="contact-card-detail-icon">📧</span>${c.email}</div>
-          ${c.phone?`<div class="contact-card-detail"><span class="contact-card-detail-icon">📱</span>${c.phone}</div>`:''}
-          ${c.location?`<div class="contact-card-detail"><span class="contact-card-detail-icon">📍</span>${c.location}</div>`:''}
-        </div>
-        ${c.company?`<div class="contact-card-tags"><span class="contact-card-tag">🏢 ${c.company}</span></div>`:''}
-        <div class="contact-card-footer">
-          <div class="contact-card-actions">
-            ${canE?`<button class="contact-card-action-btn" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">✏ Edit</button>`:''}
-            ${canD?`<button class="contact-card-action-btn danger" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">🗑</button>`:''}
-            <button class="contact-card-action-btn" onclick="event.stopPropagation();quickVideoCall('${c.id}')" title="Video Call">📹</button>
-            <button class="contact-card-action-btn" onclick="event.stopPropagation();openTimeline('${c.id}')" title="Timeline">📋</button>
+
+          <!-- Health badge top-right -->
+          <div class="contact-card-health-wrap">
+            <span class="health-badge health-${h.grade}">${h.grade} ${h.score}</span>
           </div>
-        </div>
-      </div>`;
+
+          <!-- Avatar + name -->
+          <div class="contact-card-hero">
+            <div class="contact-card-avatar" style="background:${color}">${c.name.charAt(0).toUpperCase()}</div>
+            <div class="contact-card-info">
+              <div class="contact-card-name">${c.name}</div>
+              <div class="contact-card-company">${c.company||''}</div>
+            </div>
+          </div>
+
+          <!-- Details -->
+          <div class="contact-card-details">
+            <div class="contact-card-detail"><span>✉</span> ${c.email}</div>
+            ${c.phone   ? `<div class="contact-card-detail"><span>📱</span> ${c.phone}</div>` : ''}
+            ${c.location? `<div class="contact-card-detail"><span>📍</span> ${c.location}</div>` : ''}
+          </div>
+
+          <!-- Tags -->
+          ${tags.length ? `<div class="contact-card-tags">${tags.map(t=>`<span class="contact-card-tag">${t}</span>`).join('')}</div>` : ''}
+
+          <!-- Actions -->
+          <div class="contact-card-footer">
+            <div class="contact-card-actions">
+              ${canE ? `<button class="cca-btn" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">✏ Edit</button>` : ''}
+              ${canD ? `<button class="cca-btn cca-danger" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">🗑</button>` : ''}
+              <button class="cca-btn" onclick="event.stopPropagation();quickVideoCall('${c.id}')" title="Video Call">📹 Call</button>
+              <button class="cca-btn" onclick="event.stopPropagation();openTimeline('${c.id}')" title="Timeline">📋</button>
+            </div>
+          </div>
+        </div>`;
     }).join('');
+
   } else {
-    wrap.className='contact-list-view';
-    wrap.innerHTML=list.map(c=>{
-      const color=avatarColor(c.name);
-      const h=c._health||{score:50,grade:'C'};
-      const sel=_bulkSelected.contacts.has(c.id);
-      return `<div class="contact-list-item" onclick="openC360('${c.id}')">
-        <input type="checkbox" ${sel?'checked':''} onchange="toggleBulkSelect('contacts','${c.id}',this.checked)" onclick="event.stopPropagation()" style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0" />
-        <div class="contact-list-avatar" style="background:${color}">${c.name.charAt(0)}</div>
-        <div class="contact-list-info">
-          <div class="contact-list-name">${c.name} <span class="health-badge health-${h.grade}" style="font-size:.62rem">${h.grade}</span></div>
-          <div class="contact-list-email">${c.email}</div>
-          <div class="contact-list-location">📍 ${c.location||'—'} · 🏢 ${c.company||'—'}</div>
-        </div>
-        <div class="contact-list-actions">
-          ${canE?`<button class="btn-edit" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">Edit</button>`:''}
-          ${canD?`<button class="btn-delete" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">Delete</button>`:''}
-        </div>
-      </div>`;
+    wrap.className = 'contact-list-view';
+    wrap.innerHTML = list.map(c => {
+      const color = avatarColor(c.name);
+      const h     = c._health || calcHealthScore(c.id);
+      const sel   = _bulkSelected.contacts.has(c.id);
+      return `
+        <div class="contact-list-item ${sel?'contact-card-selected':''}" onclick="openC360('${c.id}')">
+          <input type="checkbox" ${sel?'checked':''} style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0;cursor:pointer"
+            onchange="selectContactCard('${c.id}',this.checked,event)" onclick="event.stopPropagation()" />
+          <div class="contact-list-avatar" style="background:${color}">${c.name.charAt(0)}</div>
+          <div class="contact-list-info">
+            <div class="contact-list-name">${c.name}
+              <span class="health-badge health-${h.grade}" style="font-size:.62rem;margin-left:.3rem">${h.grade}</span>
+            </div>
+            <div class="contact-list-email">${c.email}</div>
+            <div class="contact-list-location">📍 ${c.location||'—'} &nbsp;·&nbsp; 🏢 ${c.company||'—'}</div>
+          </div>
+          <div class="contact-list-actions">
+            ${canE ? `<button class="cca-btn" onclick="event.stopPropagation();openEditDialog('contacts','${c.id}')">✏ Edit</button>` : ''}
+            ${canD ? `<button class="cca-btn cca-danger" onclick="event.stopPropagation();deleteRecord('contacts','${c.id}')">🗑 Delete</button>` : ''}
+          </div>
+        </div>`;
     }).join('');
   }
+}
+
+// Handle checkbox click on contact card
+function selectContactCard(contactId, checked, event) {
+  event.stopPropagation();
+  toggleBulkSelect('contacts', contactId, checked);
+  // Re-render to update selected state without full refresh
+  const cards = document.querySelectorAll('.contact-card, .contact-list-item');
+  cards.forEach(card => {
+    const cb = card.querySelector('input[type=checkbox]');
+    if (!cb) return;
+    const id = card.querySelector('[onclick*="openC360"]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (id === contactId) card.classList.toggle('contact-card-selected', checked);
+  });
 }
 function renderCustomers() {
   // Populate filter dropdowns
